@@ -1,5 +1,3 @@
-# app/scanner.py
-
 import asyncio
 import logging
 import json
@@ -20,7 +18,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 def load_known_gift_ids(gifts_file_path: str) -> set[int]:
-    """Загружает ID известных гифтов из файла."""
+    #Загружает ID известных гифтов из файла
     if not os.path.exists(gifts_file_path):
         return set()
     try:
@@ -30,17 +28,17 @@ def load_known_gift_ids(gifts_file_path: str) -> set[int]:
         return set()
 
 def save_gift_ids(gift_ids: set[int], gifts_file_path: str):
-    """Сохраняет все актуальные ID гифтов в файл."""
+    #Сохраняет все актуальные ID гифтов в файл
     with open(gifts_file_path, "w", encoding="utf-8") as f:
         json.dump(list(gift_ids), f, ensure_ascii=False, indent=2)
 
 async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_path: str) -> set:
-    """Проверяет подарки с одного клиента и отправляет уведомления."""
+    #Проверяет подарки с одного клиента и отправляет уведомления
     log.info(f"Проверка с аккаунта '{client.name}'...")
     all_gifts = await client.get_available_gifts()
 
     #----------- ОТЛАДКА ------------
-    '''
+    
     print(f"[{client.name}] Всего получено подарков: {len(all_gifts)}")
     
     # Посчитаем, сколько из них имеют флаг can_upgrade
@@ -54,7 +52,7 @@ async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_pat
     print(f"[{client.name}] Из них редких (can_upgrade=True): {upgradeable_count}")
 
     #----------- ОТЛАДКА ------------
-    '''
+    
     
     rare_gifts = [gift for gift in all_gifts if gift.can_upgrade]
     current_rare_gift_ids = {gift.id for gift in rare_gifts}
@@ -88,8 +86,7 @@ async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_pat
     return known_ids
 
 async def main(workdir: str):
-    """Основная функция для запуска сканеров."""
-    # Путь к файлу строится с использованием KNOWN_GIFTS_FILE_NAME
+    #Основная функция для запуска сканеров
     gifts_file_path = os.path.join(workdir, KNOWN_GIFTS_FILE_NAME)
     
     if not SCANNER_SESSIONS:

@@ -1,5 +1,3 @@
-# app/buyer.py
-
 import asyncio
 import logging
 import os
@@ -60,7 +58,8 @@ async def gift_handler(client: Client, message):
         log.info(f"Баланс: {balance} ★. Цена: {price} ★. Покупаем {quantity_to_buy} шт. гифта ID:{gift_id}")
         for i in range(quantity_to_buy):
             log.info(f"Попытка покупки #{i + 1}/{quantity_to_buy}...")
-            await client.send_gift(chat_id="me", gift_id=gift_id)
+            await client.send_gift(chat_id="me", gift_id=gift_id)   # --- реализовать закупку гифта на разные каналы по уникальному ID гифта (3 подарка -- на 3 разных канала)
+            
             log.info(f"✅ УСПЕХ! Покупка #{i + 1} гифта ID:{gift_id}!")
             await asyncio.sleep(SLEEP_AFTER_BUY_SECONDS)
     except FloodWait as e:
@@ -78,7 +77,7 @@ async def gift_handler(client: Client, message):
         log.error(f"Произошла непредвиденная ошибка: {e}", exc_info=True)
 
 async def run_buyer(session_name: str, workdir: str):
-    """Запускает и поддерживает одного клиента-покупателя."""
+    #Запускает и поддерживает одного клиента-покупателя
     client = Client(session_name, api_id=API_ID, api_hash=API_HASH, workdir=workdir)
     client.add_handler(MessageHandler(gift_handler, filters=filters.chat(TARGET_CHANNEL_ID) & filters.text))
     await client.start()
@@ -89,7 +88,7 @@ async def run_buyer(session_name: str, workdir: str):
     log.info("Бот-покупатель остановлен.")
 
 async def main(workdir: str):
-    """Основная функция для запуска всех покупателей."""
+    #Основная функция для запуска всех покупателей
     if not BUYER_SESSIONS:
         logging.error("Список BUYER_SESSIONS в config.py пуст. Покупатели не запущены.")
         return
