@@ -5,59 +5,56 @@ import logging
 import sys
 import os
 
-# Добавляем папку 'app' в путь для импорта, чтобы найти наши модули
-# Это нужно, так как main.py находится на уровень выше
-sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
+# --- Определяем пути здесь, в главном файле ---
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(ROOT_DIR, 'data')
+APP_DIR = os.path.join(ROOT_DIR, 'app')
 
-# Теперь мы можем импортировать функции main из наших скриптов
+# Создаем папку data, если ее нет
+os.makedirs(DATA_DIR, exist_ok=True)
+
+# Добавляем папку 'app' в путь для импорта
+sys.path.append(ROOT_DIR)
+
 try:
-    from app import scanner, buyer
+    from app.scanner import main as scanner_main
+    from app.buyer import main as buyer_main
 except ImportError as e:
     print(f"Ошибка импорта. Убедитесь, что main.py находится в корне проекта, а скрипты - в папке 'app'.")
     print(f"Подробности: {e}")
     sys.exit(1)
 
-
-# Настройка базового логирования для главного скрипта
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - [MAIN] - %(levelname)s - %(message)s'
 )
 
 async def run_project():
-    """
-    Запускает сканеры и покупателей параллельно.
-    """
+    """Запускает сканеры и покупателей параллельно."""
     logging.info("Запуск проекта: сканеры и покупатели.")
     
-    #  задачи для сканеров и покупателей
-    scanner_task = asyncio.create_task(scanner.main())
-    buyer_task = asyncio.create_task(buyer.main())
+    # Передаем путь к папке data в наши функции
+    scanner_task = asyncio.create_task(scanner_main(workdir=DATA_DIR))
+    buyer_task = asyncio.create_task(buyer_main(workdir=DATA_DIR))
 
-    # Ожидаем завершения обеих задач
-    # Если одна из них завершится (например, из-за ошибки), gather тоже завершится.
     await asyncio.gather(scanner_task, buyer_task)
-
 
 if __name__ == "__main__":
     try:
-        # python main.py -> запустить всё
-        # python main.py scanner -> запустить только сканер
-        # python main.py buyer -> запустить только покупателей
-        
         if len(sys.argv) > 1:
             mode = sys.argv[1].lower()
             if mode == "scanner":
                 logging.info("Запуск в режиме 'только сканеры'.")
-                asyncio.run(scanner.main())
+                # Передаем путь к папке data
+                asyncio.run(scanner_main(workdir=DATA_DIR))
             elif mode == "buyer":
                 logging.info("Запуск в режиме 'только покупатели'.")
-                asyncio.run(buyer.main())
+                # Передаем путь к папке data
+                asyncio.run(buyer_main(workdir=DATA_DIR))
             else:
                 logging.warning(f"Неизвестный режим '{mode}'. Запускаем все компоненты.")
                 asyncio.run(run_project())
         else:
-            # Режим по умолчанию: запустить все
             logging.info("Запуск в режиме 'все компоненты'.")
             asyncio.run(run_project())
 
