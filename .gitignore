@@ -1,0 +1,10 @@
+venv/
+/venv/
+__pycache__/
+app/__pycache__/
+*.pyc
+data/*.session
+data/known_gifts.json
+.vscode/
+*.log
+logs/
