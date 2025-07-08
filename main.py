@@ -1,11 +1,8 @@
-# main.py
-
 import asyncio
 import logging
 import sys
 import os
 
-# --- Определяем пути здесь, в главном файле ---
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(ROOT_DIR, 'data')
 APP_DIR = os.path.join(ROOT_DIR, 'app')
@@ -17,10 +14,11 @@ os.makedirs(DATA_DIR, exist_ok=True)
 sys.path.append(ROOT_DIR)
 
 try:
-    from app.scanner import main as scanner_main
-    from app.buyer import main as buyer_main
+    from scanners.scanner import main as scanner_main
+    from buyers.buyer_v2 import main as buyer_main  # Используем новую версию покупателя
+    from config_bot.config_bot import main as config_bot_main
 except ImportError as e:
-    print(f"Ошибка импорта. Убедитесь, что main.py находится в корне проекта, а скрипты - в папке 'app'.")
+    print(f"Ошибка импорта. Убедитесь, что main.py находится в корне проекта, а скрипты - в соответствующих папках.")
     print(f"Подробности: {e}")
     sys.exit(1)
 
@@ -30,7 +28,7 @@ logging.basicConfig(
 )
 
 async def run_project():
-    """Запускает сканеры и покупателей параллельно."""
+    #Запускает сканеры и покупателей параллельно
     logging.info("Запуск проекта: сканеры и покупатели.")
     
     # Передаем путь к папке data в наши функции
@@ -51,6 +49,9 @@ if __name__ == "__main__":
                 logging.info("Запуск в режиме 'только покупатели'.")
                 # Передаем путь к папке data
                 asyncio.run(buyer_main(workdir=DATA_DIR))
+            elif mode == "config":
+                logging.info("Запуск бота управления конфигурацией.")
+                asyncio.run(config_bot_main())
             else:
                 logging.warning(f"Неизвестный режим '{mode}'. Запускаем все компоненты.")
                 asyncio.run(run_project())

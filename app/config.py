@@ -21,11 +21,7 @@ SCANNER_SESSIONS = [
 # Это основные аккаунты, на которых есть "звёзды".
 # Можно добавить сколько угодно.
 BUYER_SESSIONS = [
-    "buyer_andrei", 
-    "buyer_oleg", 
-    "buyer_masha",
-    "buyer_glasha",
-    "buyer_ivan"
+    "buyer_graf_main",
 ]
 
 # --- Каналы и интервалы ---
@@ -54,3 +50,16 @@ SLEEP_AFTER_BUY_SECONDS = 0.3
 # Имя файла, в котором будут храниться ID уже обнаруженных подарков.
 # Можно оставить как есть. Файл будет создан автоматически.
 KNOWN_GIFTS_FILE_NAME = "known_gifts.json"
+
+# --- Настройки Telegram бота для управления ---
+# Токен бота для управления конфигурацией (получить у @BotFather)
+MANAGEMENT_BOT_TOKEN = "8022170559:AAHI7dCW5DBFJpYy558akUPPQWqEqvR7nY8"  # Замените на токен вашего бота
+
+# ID администратора, который может управлять ботом
+ADMIN_USER_ID = 758312339  # Замените на ваш Telegram ID
+
+# --- Настройки прокси (если нужно) ---
+# Раскомментируйте и настройте, если у вас проблемы с доступом к Telegram
+# PROXY_URL = "socks5://127.0.0.1:1080"  # Например, для локального SOCKS5 прокси
+# PROXY_URL = "http://proxy.example.com:8080"  # Для HTTP прокси
+PROXY_URL = None  # Оставьте None для прямого соединения

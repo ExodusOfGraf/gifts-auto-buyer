@@ -8,12 +8,11 @@ from pyrogram import Client
 try:
     from app.config import API_ID, API_HASH, SCANNER_SESSIONS, BUYER_SESSIONS
 except ImportError:
-    print("Ошибка: не удалось найти файл config.py. Убедитесь, что он находится в той же папке.")
+    print("Ошибка: не удалось найти файл config.py. Убедитесь, что он находится в папке app/.")
     sys.exit(1)
 
 # Определяем пути относительно этого файла
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.dirname(APP_DIR)
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(ROOT_DIR, 'data')
 
 # Создаем папку data, если ее нет
@@ -21,7 +20,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 
 async def create_session(session_name: str):
-    """Создает и авторизует одну сессию."""
+    #Создает и авторизует одну сессию
     print(f"\n--- Создание/проверка сессии для '{session_name}' ---")
     
     # Явно указываем workdir, который мы определили выше
@@ -34,7 +33,7 @@ async def create_session(session_name: str):
             print(f"❌ Не удалось получить информацию о пользователе для сессии '{session_name}'. Ошибка: {e}")
 
 async def main():
-    """Основная функция, которая проходит по всем сессиям из конфига."""
+    #Основная функция, которая проходит по всем сессиям из конфига
     all_sessions = set(SCANNER_SESSIONS + BUYER_SESSIONS)
     if not all_sessions:
         print("❗️ Списки SCANNER_SESSIONS и BUYER_SESSIONS в config.py пусты. Нечего создавать.")
