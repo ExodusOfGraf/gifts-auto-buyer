@@ -5,6 +5,27 @@ from typing import Dict, List, Optional
 from datetime import datetime
 
 @dataclass
+class BuyingProfile:
+    """Профиль закупки - набор из 4 стратегий с приоритетами"""
+    name: str  # Название профиля
+    strategy_1: 'BuyingStrategy'  # Приоритет 1 (самый высокий)
+    strategy_2: 'BuyingStrategy'  # Приоритет 2  
+    strategy_3: 'BuyingStrategy'  # Приоритет 3
+    strategy_4: 'BuyingStrategy'  # Приоритет 4 (самый низкий)
+    
+    def get_strategies(self) -> List['BuyingStrategy']:
+        """Возвращает все стратегии профиля отсортированные по приоритету"""
+        return [self.strategy_1, self.strategy_2, self.strategy_3, self.strategy_4]
+    
+    def get_best_strategy(self, price: int) -> Optional['BuyingStrategy']:
+        """Возвращает лучшую стратегию для покупки по цене (с учетом приоритета)"""
+        strategies = self.get_strategies()
+        for strategy in strategies:  # Уже отсортированы по приоритету
+            if strategy.can_buy(price):
+                return strategy
+        return None
+
+@dataclass
 class BuyingStrategy:
     """Стратегия покупки для определенного диапазона цен"""
     min_price: int  # Минимальная цена подарка
@@ -30,13 +51,26 @@ class BuyingStrategy:
 class BuyerConfig:
     """Конфигурация для одного покупателя"""
     session_name: str
-    strategies: List[BuyingStrategy]
+    strategies: List[BuyingStrategy]  # Оставляем для обратной совместимости
+    profiles: Dict[str, BuyingProfile]  # Новые профили закупки
+    active_profile: str  # Название активного профиля
     enabled: bool = True
     auto_reset_daily: bool = True  # Автоматически сбрасывать траты каждый день
     last_reset: str = ""  # Дата последнего сброса
+    owner_id: int = 0  # ID владельца бота (для прав доступа)
+    
+    def get_active_profile(self) -> Optional[BuyingProfile]:
+        """Возвращает активный профиль"""
+        return self.profiles.get(self.active_profile)
     
     def get_best_strategy(self, price: int) -> Optional[BuyingStrategy]:
         """Возвращает лучшую стратегию для покупки по цене"""
+        # Сначала пробуем использовать активный профиль
+        active_profile = self.get_active_profile()
+        if active_profile:
+            return active_profile.get_best_strategy(price)
+        
+        # Если профиля нет, используем старую систему стратегий
         available_strategies = [s for s in self.strategies if s.can_buy(price)]
         if not available_strategies:
             return None
@@ -53,8 +87,16 @@ class BuyerConfig:
     
     def reset_daily_spending(self):
         """Сбрасывает ежедневные траты"""
+        # Сбрасываем траты в активном профиле
+        active_profile = self.get_active_profile()
+        if active_profile:
+            for strategy in active_profile.get_strategies():
+                strategy.reset_spent()
+        
+        # Также сбрасываем в старых стратегиях для обратной совместимости
         for strategy in self.strategies:
             strategy.reset_spent()
+        
         self.last_reset = datetime.now().strftime("%Y-%m-%d")
 
 class BuyerConfigManager:
@@ -81,12 +123,32 @@ class BuyerConfigManager:
                 for strategy_data in config_data.get('strategies', []):
                     strategies.append(BuyingStrategy(**strategy_data))
                 
+                # Загружаем профили если они есть
+                profiles = {}
+                profiles_data = config_data.get('profiles', {})
+                for profile_name, profile_data in profiles_data.items():
+                    strategy_1 = BuyingStrategy(**profile_data['strategy_1'])
+                    strategy_2 = BuyingStrategy(**profile_data['strategy_2'])
+                    strategy_3 = BuyingStrategy(**profile_data['strategy_3'])
+                    strategy_4 = BuyingStrategy(**profile_data['strategy_4'])
+                    
+                    profiles[profile_name] = BuyingProfile(
+                        name=profile_name,
+                        strategy_1=strategy_1,
+                        strategy_2=strategy_2,
+                        strategy_3=strategy_3,
+                        strategy_4=strategy_4
+                    )
+                
                 config = BuyerConfig(
                     session_name=session_name,
                     strategies=strategies,
+                    profiles=profiles,
+                    active_profile=config_data.get('active_profile', ''),
                     enabled=config_data.get('enabled', True),
                     auto_reset_daily=config_data.get('auto_reset_daily', True),
-                    last_reset=config_data.get('last_reset', '')
+                    last_reset=config_data.get('last_reset', ''),
+                    owner_id=config_data.get('owner_id', 0)
                 )
                 self.configs[session_name] = config
         except Exception as e:
@@ -97,11 +159,23 @@ class BuyerConfigManager:
         """Сохраняет конфигурации в файл"""
         data = {}
         for session_name, config in self.configs.items():
+            profiles_data = {}
+            for profile_name, profile in config.profiles.items():
+                profiles_data[profile_name] = {
+                    'strategy_1': asdict(profile.strategy_1),
+                    'strategy_2': asdict(profile.strategy_2),
+                    'strategy_3': asdict(profile.strategy_3),
+                    'strategy_4': asdict(profile.strategy_4)
+                }
+            
             data[session_name] = {
                 'strategies': [asdict(s) for s in config.strategies],
+                'profiles': profiles_data,
+                'active_profile': config.active_profile,
                 'enabled': config.enabled,
                 'auto_reset_daily': config.auto_reset_daily,
-                'last_reset': config.last_reset
+                'last_reset': config.last_reset,
+                'owner_id': config.owner_id
             }
         
         with open(self.config_file, 'w', encoding='utf-8') as f:
@@ -116,7 +190,7 @@ class BuyerConfigManager:
         self.configs[session_name] = config
         self.save_configs()
     
-    def create_default_config(self, session_name: str) -> BuyerConfig:
+    def create_default_config(self, session_name: str, owner_id: int = 0) -> BuyerConfig:
         """Создает дефолтную конфигурацию"""
         default_strategies = [
             BuyingStrategy(min_price=1000, max_price=10000, max_spend=5000, priority=1),
@@ -124,9 +198,21 @@ class BuyerConfigManager:
             BuyingStrategy(min_price=1, max_price=99, max_spend=1000, priority=3)
         ]
         
+        # Создаем дефолтный профиль
+        default_profile = BuyingProfile(
+            name="default",
+            strategy_1=BuyingStrategy(min_price=1000, max_price=10000, max_spend=5000, priority=1),
+            strategy_2=BuyingStrategy(min_price=500, max_price=999, max_spend=3000, priority=2),
+            strategy_3=BuyingStrategy(min_price=100, max_price=499, max_spend=2000, priority=3),
+            strategy_4=BuyingStrategy(min_price=1, max_price=99, max_spend=1000, priority=4)
+        )
+        
         config = BuyerConfig(
             session_name=session_name,
-            strategies=default_strategies
+            strategies=default_strategies,
+            profiles={"default": default_profile},
+            active_profile="default",
+            owner_id=owner_id
         )
         
         self.set_config(session_name, config)
@@ -172,3 +258,112 @@ class BuyerConfigManager:
             })
         
         return stats
+
+    def has_access(self, session_name: str, user_id: int) -> bool:
+        """Проверяет, имеет ли пользователь доступ к настройкам сессии"""
+        # Импортируем здесь, чтобы избежать циклических импортов
+        try:
+            from app.config import SUPER_ADMINS, BUYER_OWNERS
+            
+            # Суперадмины имеют доступ ко всем сессиям
+            if user_id in SUPER_ADMINS:
+                return True
+            
+            # Проверяем права владельца по BUYER_OWNERS
+            if BUYER_OWNERS.get(session_name) == user_id:
+                return True
+        except ImportError:
+            pass  # Если нет config файла, используем старую логику
+        
+        config = self.get_config(session_name)
+        if not config:
+            return False
+        
+        # Если owner_id не установлен (старые конфиги), разрешаем доступ
+        if config.owner_id == 0:
+            return True
+        
+        return config.owner_id == user_id
+    
+    def create_profile(self, session_name: str, profile_name: str, user_id: int) -> bool:
+        """Создает новый профиль для сессии"""
+        if not self.has_access(session_name, user_id):
+            return False
+        
+        config = self.get_config(session_name)
+        if not config:
+            return False
+        
+        if len(config.profiles) >= 4:
+            return False  # Максимум 4 профиля
+        
+        new_profile = BuyingProfile(
+            name=profile_name,
+            strategy_1=BuyingStrategy(min_price=1000, max_price=10000, max_spend=5000, priority=1),
+            strategy_2=BuyingStrategy(min_price=500, max_price=999, max_spend=3000, priority=2),
+            strategy_3=BuyingStrategy(min_price=100, max_price=499, max_spend=2000, priority=3),
+            strategy_4=BuyingStrategy(min_price=1, max_price=99, max_spend=1000, priority=4)
+        )
+        
+        config.profiles[profile_name] = new_profile
+        self.set_config(session_name, config)
+        return True
+    
+    def delete_profile(self, session_name: str, profile_name: str, user_id: int) -> bool:
+        """Удаляет профиль"""
+        if not self.has_access(session_name, user_id):
+            return False
+        
+        config = self.get_config(session_name)
+        if not config or profile_name not in config.profiles:
+            return False
+        
+        if profile_name == "default":
+            return False  # Нельзя удалить дефолтный профиль
+        
+        # Если удаляется активный профиль, переключаемся на default
+        if config.active_profile == profile_name:
+            config.active_profile = "default"
+        
+        del config.profiles[profile_name]
+        self.set_config(session_name, config)
+        return True
+    
+    def set_active_profile(self, session_name: str, profile_name: str, user_id: int) -> bool:
+        """Устанавливает активный профиль"""
+        if not self.has_access(session_name, user_id):
+            return False
+        
+        config = self.get_config(session_name)
+        if not config or profile_name not in config.profiles:
+            return False
+        
+        config.active_profile = profile_name
+        self.set_config(session_name, config)
+        return True
+    
+    def update_profile_strategy(self, session_name: str, profile_name: str, 
+                              strategy_num: int, strategy: BuyingStrategy, user_id: int) -> bool:
+        """Обновляет стратегию в профиле"""
+        if not self.has_access(session_name, user_id):
+            return False
+        
+        config = self.get_config(session_name)
+        if not config or profile_name not in config.profiles:
+            return False
+        
+        profile = config.profiles[profile_name]
+        
+        if strategy_num == 1:
+            profile.strategy_1 = strategy
+        elif strategy_num == 2:
+            profile.strategy_2 = strategy
+        elif strategy_num == 3:
+            profile.strategy_3 = strategy
+        elif strategy_num == 4:
+            profile.strategy_4 = strategy
+        else:
+            return False
+        
+        self.set_config(session_name, config)
+        return True

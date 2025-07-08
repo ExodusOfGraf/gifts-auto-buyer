@@ -68,7 +68,7 @@ async def gift_handler(client: Client, message):
     config = config_manager.get_config(client.name)
     if not config:
         log.warning(f"Конфигурация для {client.name} не найдена. Создаем дефолтную.")
-        config = config_manager.create_default_config(client.name)
+        config = config_manager.create_default_config(client.name, 0)  # owner_id = 0 для совместимости
     
     # Проверяем, включен ли этот покупатель
     if not config.enabled:
@@ -155,7 +155,7 @@ async def run_buyer(session_name: str, workdir: str):
     
     # Создаем дефолтную конфигурацию если её нет
     if config_manager and not config_manager.get_config(session_name):
-        config_manager.create_default_config(session_name)
+        config_manager.create_default_config(session_name, 0)  # owner_id = 0 для совместимости
         log.info(f"Создана дефолтная конфигурация для {session_name}")
     
     await asyncio.Event().wait()

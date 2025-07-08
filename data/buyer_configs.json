@@ -16,9 +16,12 @@
         "current_spent": 0
       }
     ],
+    "profiles": {},
+    "active_profile": "",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": "2025-07-08"
+    "last_reset": "2025-07-08",
+    "owner_id": 0
   },
   "buyer_andrei": {
     "strategies": [
@@ -44,9 +47,12 @@
         "current_spent": 0
       }
     ],
+    "profiles": {},
+    "active_profile": "",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": ""
+    "last_reset": "",
+    "owner_id": 111111111
   },
   "buyer_oleg": {
     "strategies": [
@@ -72,9 +78,12 @@
         "current_spent": 0
       }
     ],
+    "profiles": {},
+    "active_profile": "",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": ""
+    "last_reset": "",
+    "owner_id": 222222222
   },
   "buyer_masha": {
     "strategies": [
@@ -100,9 +109,12 @@
         "current_spent": 0
       }
     ],
+    "profiles": {},
+    "active_profile": "",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": ""
+    "last_reset": "",
+    "owner_id": 333333333
   },
   "buyer_glasha": {
     "strategies": [
@@ -128,9 +140,12 @@
         "current_spent": 0
       }
     ],
+    "profiles": {},
+    "active_profile": "",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": ""
+    "last_reset": "",
+    "owner_id": 444444444
   },
   "buyer_ivan": {
     "strategies": [
@@ -156,9 +171,12 @@
         "current_spent": 0
       }
     ],
+    "profiles": {},
+    "active_profile": "",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": ""
+    "last_reset": "",
+    "owner_id": 555555555
   },
   "stats_buyer_andrei": {
     "strategies": [
@@ -184,9 +202,12 @@
         "current_spent": 0
       }
     ],
+    "profiles": {},
+    "active_profile": "",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": ""
+    "last_reset": "",
+    "owner_id": 111111111
   },
   "buyer_graf_main": {
     "strategies": [
@@ -212,8 +233,72 @@
         "current_spent": 0
       }
     ],
+    "profiles": {
+      "default": {
+        "strategy_1": {
+          "min_price": 1000,
+          "max_price": 10000,
+          "max_spend": 5000,
+          "priority": 1,
+          "current_spent": 0
+        },
+        "strategy_2": {
+          "min_price": 500,
+          "max_price": 999,
+          "max_spend": 3000,
+          "priority": 2,
+          "current_spent": 0
+        },
+        "strategy_3": {
+          "min_price": 100,
+          "max_price": 499,
+          "max_spend": 2000,
+          "priority": 3,
+          "current_spent": 0
+        },
+        "strategy_4": {
+          "min_price": 1,
+          "max_price": 99,
+          "max_spend": 1000,
+          "priority": 4,
+          "current_spent": 0
+        }
+      },
+      "test_profile": {
+        "strategy_1": {
+          "min_price": 1,
+          "max_price": 100,
+          "max_spend": 100,
+          "priority": 1,
+          "current_spent": 0
+        },
+        "strategy_2": {
+          "min_price": 500,
+          "max_price": 999,
+          "max_spend": 3000,
+          "priority": 2,
+          "current_spent": 0
+        },
+        "strategy_3": {
+          "min_price": 100,
+          "max_price": 499,
+          "max_spend": 2000,
+          "priority": 3,
+          "current_spent": 0
+        },
+        "strategy_4": {
+          "min_price": 1,
+          "max_price": 99,
+          "max_spend": 1000,
+          "priority": 4,
+          "current_spent": 0
+        }
+      }
+    },
+    "active_profile": "default",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": ""
+    "last_reset": "",
+    "owner_id": 758312339
   }
 }
