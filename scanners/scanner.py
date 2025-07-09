@@ -103,7 +103,7 @@ async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_pat
         rare_gifts_dict = {gift.id: gift for gift in rare_gifts}
         
         # Ограничиваем количество отправляемых подарков, чтобы избежать FLOOD_WAIT
-        max_gifts_to_send = 3  # Отправляем максимум 3 подарка за раз
+        max_gifts_to_send = 5  # Отправляем максимум 5 подарков за раз (уменьшаем для безопасности)
         gifts_to_send = list(new_gift_ids)[:max_gifts_to_send]
         
         if len(new_gift_ids) > max_gifts_to_send:
@@ -123,19 +123,30 @@ async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_pat
                 # Отправляем только текстовое сообщение (убираем проблемную отправку thumbnail)
                 await client.send_message(TARGET_CHANNEL_ID, message, disable_web_page_preview=True)
                 log.info(f"Отправлено текстовое сообщение для подарка '{gift_data.name}' (ID: {gift_data.id})")
+                
+                # Добавляем отправленный подарок в известные сразу после успешной отправки
+                known_ids.add(gift_id)
                     
             except Exception as e:
                 log.error(f"Ошибка при отправке сообщения для подарка '{gift_data.name}': {e}")
-                # Если это FLOOD_WAIT, ждем и пропускаем
+                # Если это FLOOD_WAIT, ждем указанное время и пропускаем
                 if "FLOOD_WAIT" in str(e):
-                    log.warning(f"Пропускаем отправку из-за FLOOD_WAIT для подарка ID: {gift_data.id}")
-                    continue
+                    import re
+                    wait_time_match = re.search(r'wait of (\d+) seconds', str(e))
+                    if wait_time_match:
+                        wait_time = int(wait_time_match.group(1))
+                        log.warning(f"FLOOD_WAIT: необходимо ждать {wait_time} секунд. Пропускаем остальные подарки.")
+                        # Прерываем цикл отправки, чтобы не получать еще больше FLOOD_WAIT
+                        break
+                    else:
+                        log.warning(f"Пропускаем отправку из-за FLOOD_WAIT для подарка ID: {gift_data.id}")
+                        continue
             
-            # Добавляем задержку между отправкой сообщений
+            # Добавляем увеличенную задержку между отправкой сообщений
             if i < len(gifts_to_send) - 1:  # Не ждем после последнего сообщения
-                await asyncio.sleep(5)  # Увеличиваем задержку до 5 секунд между сообщениями
+                await asyncio.sleep(15)  # Увеличиваем задержку до 15 секунд между сообщениями
         
-        known_ids.update(new_gift_ids)
+        # Сохраняем только те подарки, которые были успешно отправлены
         save_gift_ids(known_ids, gifts_file_path)
     else:
         log.info(f"Новых редких подарков не найдено через аккаунт '{client.name}'.")
