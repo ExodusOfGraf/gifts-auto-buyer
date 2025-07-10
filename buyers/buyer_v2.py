@@ -14,7 +14,7 @@ from app.config import (
     API_ID, API_HASH, BUYER_SESSIONS, TARGET_CHANNEL_ID,
     SLEEP_AFTER_BUY_SECONDS
 )
-from .buyer_config import BuyerConfigManager
+from .buyer_config import BuyerConfig, BuyerConfigManager, BuyingStrategy
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,59 +47,67 @@ def parse_gift_data(text: str) -> dict | None:
     except (ValueError, IndexError, KeyError):
         return None
 
-async def gift_handler(client: Client, message):
-    """Обработчик новых подарков с поддержкой стратегий покупки"""
+async def get_purchase_parameters(
+    client: Client, 
+    price: int, 
+    manager: BuyerConfigManager
+) -> tuple[Optional[BuyerConfig], Optional[BuyingStrategy]]:
+    """
+    Проверяет конфиг, статус бота, сбрасывает дневные лимиты и выбирает стратегию.
+    Возвращает кортеж (конфигурация, стратегия) или (None, None) если покупка невозможна.
+    """
     log = logging.getLogger(client.name)
-    log.info("Получено новое сообщение в целевом канале!")
     
-    # Проверяем, что менеджер конфигураций инициализирован
-    if config_manager is None:
-        log.error("Менеджер конфигураций не инициализирован!")
-        return
-    
-    gift_data = parse_gift_data(message.text)
-    if not gift_data:
-        return
-
-    gift_id = gift_data['GIFT_ID']
-    price = gift_data['PRICE']
-    
-    # Получаем конфигурацию для этого покупателя
-    config = config_manager.get_config(client.name)
+    config = manager.get_config(client.name)
     if not config:
         log.warning(f"Конфигурация для {client.name} не найдена. Создаем дефолтную.")
-        config = config_manager.create_default_config(client.name, 0)  # owner_id = 0 для совместимости
-    
-    # Проверяем, включен ли этот покупатель
+        config = manager.create_default_config(client.name, 0)
+
     if not config.enabled:
         log.info(f"Покупатель {client.name} отключен. Пропускаем покупку.")
-        return
-    
-    # Проверяем, нужно ли сбросить ежедневные траты
+        return None, None
+
     if config.should_reset_daily():
         log.info(f"Сбрасываем ежедневные траты для {client.name}")
         config.reset_daily_spending()
-        config_manager.set_config(client.name, config)
-    
-    # Находим подходящую стратегию
+        manager.set_config(client.name, config)
+
     strategy = config.get_best_strategy(price)
     if not strategy:
         log.info(f"Нет подходящей стратегии для подарка ценой {price} ⭐. Пропускаем.")
-        return
+        return None, None
+        
+    return config, strategy
+
+async def execute_purchase_loop(
+    client: Client, 
+    gift_id: int, 
+    price: int, 
+    strategy: BuyingStrategy, 
+    manager: BuyerConfigManager
+):
+    """
+    Выполняет цикл покупки подарков на основе выбранной стратегии.
+    """
+    log = logging.getLogger(client.name)
     
     try:
         balance = await client.get_stars_balance()
         if balance < price:
             log.warning(f"Недостаточно средств. Баланс: {balance} ⭐, Цена: {price} ⭐")
             return
-        
+
         # Вычисляем, сколько подарков можем купить по стратегии
+        if price <= 0:
+            log.warning(f"Цена подарка некорректна ({price} ⭐). Покупка отменена.")
+            return
+
         max_by_strategy = (strategy.max_spend - strategy.current_spent) // price
         max_by_balance = balance // price
         quantity_to_buy = min(max_by_strategy, max_by_balance)
         
         if quantity_to_buy <= 0:
-            log.info(f"Лимит трат по стратегии исчерпан. Пропускаем покупку.")
+            log.info(f"Лимит трат по стратегии исчерпан или недостаточно средств. Пропускаем покупку.")
             return
         
         log.info(f"Стратегия: {strategy.min_price}-{strategy.max_price} ⭐ (приоритет {strategy.priority})")
@@ -112,8 +120,7 @@ async def gift_handler(client: Client, message):
                 log.info(f"Попытка покупки #{i + 1}/{quantity_to_buy}...")
                 await client.send_gift(chat_id="me", gift_id=gift_id)
                 
-                # Обновляем информацию о покупке
-                config_manager.update_purchase(client.name, price)
+                manager.update_purchase(client.name, price)
                 successful_purchases += 1
                 
                 log.info(f"✅ УСПЕХ! Покупка #{i + 1} гифта ID:{gift_id}!")
@@ -131,7 +138,8 @@ async def gift_handler(client: Client, message):
                     break
         
         if successful_purchases > 0:
-            updated_config = config_manager.get_config(client.name)
+            # Обновляем конфиг, чтобы получить актуальные данные о тратах
+            updated_config = manager.get_config(client.name)
             if updated_config:
                 updated_strategy = updated_config.get_best_strategy(price)
                 if updated_strategy:
@@ -143,7 +151,30 @@ async def gift_handler(client: Client, message):
         log.error(f"FloodWait: Превышен лимит запросов. Ожидаем {wait_time} секунд.")
         await asyncio.sleep(wait_time)
     except Exception as e:
-        log.error(f"Произошла непредвиденная ошибка: {e}", exc_info=True)
+        log.error(f"Произошла непредвиденная ошибка в цикле покупки: {e}", exc_info=True)
+
+
+async def gift_handler(client: Client, message):
+    """Обработчик новых подарков с поддержкой стратегий покупки"""
+    log = logging.getLogger(client.name)
+    log.info("Получено новое сообщение в целевом канале!")
+    
+    if config_manager is None:
+        log.error("Менеджер конфигураций не инициализирован!")
+        return
+    
+    gift_data = parse_gift_data(message.text)
+    if not gift_data:
+        return
+
+    gift_id = gift_data['GIFT_ID']
+    price = gift_data['PRICE']
+    
+    config, strategy = await get_purchase_parameters(client, price, config_manager)
+    
+    if config and strategy:
+        await execute_purchase_loop(client, gift_id, price, strategy, config_manager)
+
 
 async def run_buyer(session_name: str, workdir: str):
     """Запускает и поддерживает одного клиента-покупателя"""
