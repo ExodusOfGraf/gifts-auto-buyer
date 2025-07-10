@@ -37,64 +37,8 @@ async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_pat
     log.info(f"Проверка с аккаунта '{client.name}'...")
     all_gifts = await client.get_available_gifts()
 
-    #----------- КРАТКАЯ ДИАГНОСТИКА ------------
-    
-    print(f"[{client.name}] Всего получено подарков: {len(all_gifts)}")
-    
-    # Посчитаем, сколько из них имеют разные флаги
-    upgradeable_count = sum(1 for gift in all_gifts if gift.can_upgrade)
-    limited_count = sum(1 for gift in all_gifts if gift.is_limited)
-    
-    print(f"[{client.name}] Из них с can_upgrade=True: {upgradeable_count}")
-    print(f"[{client.name}] Из них с is_limited=True: {limited_count}")
-    
-    # Проверим подарки с высокой ценой (возможно, это индикатор редкости)
-    expensive_gifts = [gift for gift in all_gifts if gift.price and gift.price > 100]  # Подарки дороже 100 звезд
-    if expensive_gifts:
-        print(f"[{client.name}] Найдено дорогих подарков (>100 звезд): {len(expensive_gifts)}")
-
-    #----------- КРАТКАЯ ДИАГНОСТИКА ------------
-    
-    
-    # ИСПРАВЛЯЕМ ЛОГИКУ ОПРЕДЕЛЕНИЯ РЕДКИХ ПОДАРКОВ
-    # can_upgrade не работает в новой версии API, используем is_limited
     rare_gifts = [gift for gift in all_gifts if gift.is_limited]
     current_rare_gift_ids = {gift.id for gift in rare_gifts}
-    
-    print(f"[{client.name}] Редких подарков (is_limited=True): {len(rare_gifts)}")
-    
-    # Если не найдено редких подарков через is_limited, пробуем альтернативные критерии
-    if not rare_gifts:
-        print(f"[{client.name}] is_limited не дал результатов, пробуем альтернативные критерии...")
-        
-        # Вариант 1: дорогие подарки (>1000 звезд)
-        alternative_rare_1 = [gift for gift in all_gifts if gift.price and gift.price > 1000]
-        
-        # Вариант 2: подарки с upgrade_price
-        alternative_rare_2 = [gift for gift in all_gifts if hasattr(gift, 'upgrade_price') and gift.upgrade_price]
-        
-        # Вариант 3: комбинация критериев
-        alternative_rare_3 = [gift for gift in all_gifts if 
-                             gift.price and gift.total_amount and
-                             (gift.price > 150 and gift.total_amount < 50000)]
-        
-        print(f"[{client.name}] Альтернативные варианты редких подарков:")
-        print(f"  - Очень дорогие (>1000 звезд): {len(alternative_rare_1)}")
-        print(f"  - С upgrade_price: {len(alternative_rare_2)}")
-        print(f"  - Комбинированные критерии: {len(alternative_rare_3)}")
-        
-        # Используем is_limited как основной критерий, а при отсутствии - upgrade_price
-        rare_gifts = alternative_rare_2 if alternative_rare_2 else alternative_rare_1
-        current_rare_gift_ids = {gift.id for gift in rare_gifts}
-        
-        if rare_gifts:
-            print(f"[{client.name}] Переключаемся на альтернативный способ определения редких подарков!")
-            for gift in rare_gifts[:3]:  # Показываем первые 3
-                print(f"  -> Альтернативный редкий подарок: ID={gift.id}, Name={gift.name}, Price={gift.price}, Total={gift.total_amount}")
-    else:
-        # Показываем найденные редкие подарки
-        for gift in rare_gifts[:3]:  # Показываем первые 3
-            print(f"  -> Редкий подарок (is_limited): ID={gift.id}, Name={gift.name}, Price={gift.price}, Total={gift.total_amount}")
     
     new_gift_ids = current_rare_gift_ids - known_ids
     

@@ -4,6 +4,14 @@ import os
 import sys
 import re
 
+import asyncio
+import logging
+import os
+import sys
+import json
+import re
+import aiohttp
+
 # Добавляем родительскую папку в путь для импорта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -142,6 +150,10 @@ def create_profile_menu_keyboard(session_name: str, profile_name: str):
         builder.add(InlineKeyboardButton(text="2️⃣ Стратегия 2 (Приоритет 2)", callback_data=f"edit_strategy|{session_name}|{profile_name}|2"))
         builder.add(InlineKeyboardButton(text="3️⃣ Стратегия 3 (Приоритет 3)", callback_data=f"edit_strategy|{session_name}|{profile_name}|3"))
         builder.add(InlineKeyboardButton(text="4️⃣ Стратегия 4 (Приоритет 4)", callback_data=f"edit_strategy|{session_name}|{profile_name}|4"))
+        
+        # Кнопка настройки места отправки
+        send_text = "📱 Отправка в профиль" if config.profiles[profile_name].send_to_self else "📤 Отправка в канал"
+        builder.add(InlineKeyboardButton(text=send_text, callback_data=f"send_settings|{session_name}|{profile_name}"))
         
         # Кнопка удаления (только для не-дефолтных профилей)
         if profile_name != "default":
@@ -362,7 +374,8 @@ async def show_profile_menu(callback: CallbackQuery):
     session_safe = session_name.replace('_', '\\_').replace('<', '&lt;').replace('>', '&gt;')
     
     text = f"🎯 <b>Профиль \"{profile_name}\" для {session_safe}</b>\n\n"
-    text += f"Статус: {'🔸 Активен' if config.active_profile == profile_name else '⚪ Не активен'}\n\n"
+    text += f"Статус: {'🔸 Активен' if config.active_profile == profile_name else '⚪ Не активен'}\n"
+    text += f"Отправка: {'📱 В профиль' if profile.send_to_self else f'📤 В канал {profile.target_channel_id}'}\n\n"
     text += "<b>Стратегии:</b>\n"
     
     for i, strategy in enumerate(profile.get_strategies()):
@@ -407,24 +420,42 @@ async def activate_profile(callback: CallbackQuery):
         
         if success:
             await callback.answer(f"✅ Профиль '{profile_name}' активирован")
-            # Обновляем меню профиля
-            callback.data = f"profile|{session_name}|{profile_name}"
-            await show_profile_menu(callback)
+            
+            # Обновляем меню профиля напрямую
+            if callback.message and not isinstance(callback.message, InaccessibleMessage):
+                try:
+                    config = config_manager.get_config(session_name)
+                    if config and profile_name in config.profiles:
+                        profile = config.profiles[profile_name]
+                        session_safe = session_name.replace('_', '\\_').replace('<', '&lt;').replace('>', '&gt;')
+                        
+                        text = f"🎯 <b>Профиль \"{profile_name}\" для {session_safe}</b>\n\n"
+                        text += f"Статус: {'🔸 Активен' if config.active_profile == profile_name else '⚪ Не активен'}\n"
+                        text += f"Отправка: {'📱 В профиль' if profile.send_to_self else f'📤 В канал {profile.target_channel_id}'}\n\n"
+                        text += "<b>Стратегии:</b>\n"
+                        
+                        for i, strategy in enumerate(profile.get_strategies()):
+                            remaining = strategy.max_spend - strategy.current_spent
+                            text += f"<b>Стратегия {i + 1}</b> (Приоритет: {strategy.priority})\n"
+                            text += f"  💰 Диапазон: {strategy.min_price}-{strategy.max_price} ⭐\n"
+                            text += f"  💳 Лимит: {strategy.max_spend} ⭐\n"
+                            text += f"  📊 Потрачено: {strategy.current_spent} ⭐\n"
+                            text += f"  🔋 Остается: {remaining} ⭐\n\n"
+                        
+                        await callback.message.edit_text(
+                            text, 
+                            reply_markup=create_profile_menu_keyboard(session_name, profile_name), 
+                            parse_mode="HTML"
+                        )
+                except Exception as edit_error:
+                    logger.error(f"Ошибка при обновлении меню профиля: {edit_error}")
         else:
-            # Дополнительная диагностика
-            config = config_manager.get_config(session_name)
-            if not config:
-                await callback.answer(f"❌ Конфигурация для сессии '{session_name}' не найдена")
-            elif profile_name not in config.profiles:
-                await callback.answer(f"❌ Профиль '{profile_name}' не найден в сессии '{session_name}'")
-            elif not config_manager.has_access(session_name, callback.from_user.id):
-                await callback.answer(f"❌ Нет доступа к сессии '{session_name}'")
-            else:
-                await callback.answer(f"❌ Неизвестная ошибка при активации профиля '{profile_name}'")
+            await callback.answer(f"❌ Не удалось активировать профиль '{profile_name}'")
     
     except Exception as e:
         logger.error(f"Ошибка при активации профиля: {e}")
-        await callback.answer(f"❌ Критическая ошибка: {str(e)}")
+        error_msg = str(e)[:50] + "..." if len(str(e)) > 50 else str(e)
+        await callback.answer(f"❌ Ошибка: {error_msg}")
 
 @dp.callback_query(F.data.startswith("add_profile|"))
 async def add_profile_prompt(callback: CallbackQuery):
@@ -524,26 +555,24 @@ async def confirm_delete_profile(callback: CallbackQuery):
         
         if success:
             await callback.answer(f"✅ Профиль '{profile_name}' удален")
-            # Возвращаемся к списку профилей
-            callback.data = f"profiles|{session_name}"
-            await show_profiles(callback)
+            
+            # Создаем новый CallbackQuery для перехода к списку профилей
+            if callback.message and not isinstance(callback.message, InaccessibleMessage):
+                try:
+                    await callback.message.edit_text(
+                        f"🎯 <b>Профили закупки для {session_name}</b>\n\nВыберите профиль для настройки:",
+                        reply_markup=create_profiles_keyboard(session_name),
+                        parse_mode="HTML"
+                    )
+                except Exception as edit_error:
+                    logger.error(f"Ошибка при обновлении сообщения: {edit_error}")
         else:
-            # Дополнительная диагностика
-            config = config_manager.get_config(session_name)
-            if not config:
-                await callback.answer(f"❌ Конфигурация для сессии '{session_name}' не найдена")
-            elif profile_name not in config.profiles:
-                await callback.answer(f"❌ Профиль '{profile_name}' не найден")
-            elif profile_name == "default":
-                await callback.answer(f"❌ Нельзя удалить дефолтный профиль")
-            elif not config_manager.has_access(session_name, callback.from_user.id):
-                await callback.answer(f"❌ Нет доступа к сессии '{session_name}'")
-            else:
-                await callback.answer(f"❌ Неизвестная ошибка при удалении профиля '{profile_name}'")
+            await callback.answer(f"❌ Не удалось удалить профиль '{profile_name}'")
     
     except Exception as e:
         logger.error(f"Ошибка при удалении профиля: {e}")
-        await callback.answer(f"❌ Критическая ошибка: {str(e)}")
+        error_msg = str(e)[:50] + "..." if len(str(e)) > 50 else str(e)
+        await callback.answer(f"❌ Ошибка: {error_msg}")
 
 @dp.callback_query(F.data.startswith("edit_strategy|"))
 async def edit_strategy_prompt(callback: CallbackQuery):
@@ -711,9 +740,31 @@ async def reset_session_spending(callback: CallbackQuery):
     
     await callback.answer(f"✅ Траты для {session_name} сброшены")
     
-    # Перенаправляем на статистику сессии
-    callback.data = f"session_stats_{session_name}"
-    await session_stats(callback)
+    # Показываем статистику сессии напрямую
+    if callback.message and not isinstance(callback.message, InaccessibleMessage):
+        try:
+            session_safe = session_name.replace('_', '\\_').replace('<', '&lt;').replace('>', '&gt;')
+            
+            text = f"📊 <b>Статистика для {session_safe}</b>\n\n"
+            text += f"Статус: {'✅ Включен' if config.enabled else '❌ Выключен'}\n"
+            text += f"Активный профиль: <b>{config.active_profile}</b>\n\n"
+            
+            active_profile = config.profiles.get(config.active_profile)
+            if active_profile:
+                text += "<b>Стратегии активного профиля:</b>\n"
+                for i, strategy in enumerate(active_profile.get_strategies()):
+                    remaining = strategy.max_spend - strategy.current_spent
+                    text += f"<b>Стратегия {i + 1}</b>\n"
+                    text += f"  💰 {strategy.min_price}-{strategy.max_price} ⭐\n"
+                    text += f"  📊 {strategy.current_spent}/{strategy.max_spend} ⭐\n"
+                    text += f"  🔋 Остается: {remaining} ⭐\n\n"
+            
+            builder = InlineKeyboardBuilder()
+            builder.add(InlineKeyboardButton(text="🔙 Назад", callback_data=f"session_{session_name}"))
+            
+            await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        except Exception as edit_error:
+            logger.error(f"Ошибка при обновлении статистики: {edit_error}")
 
 @dp.callback_query(F.data == "reset_spending")
 async def reset_all_spending(callback: CallbackQuery):
@@ -750,6 +801,8 @@ async def handle_text_input(message: Message):
         await handle_profile_name_input(message, context)
     elif context.get('waiting_for') == 'strategy_params':
         await handle_strategy_params_input(message, context)
+    elif context.get('waiting_for') == 'channel_id':
+        await handle_channel_id_input(message, context)
 
 async def handle_profile_name_input(message: Message, context: dict):
     """Обработка ввода имени профиля"""
@@ -807,7 +860,8 @@ async def handle_profile_name_input(message: Message, context: dict):
     
     except Exception as e:
         logger.error(f"Ошибка при создании профиля: {e}")
-        await message.answer(f"❌ Критическая ошибка при создании профиля: {str(e)}")
+        error_msg = str(e)[:50] + "..." if len(str(e)) > 50 else str(e)
+        await message.answer(f"❌ Ошибка: {error_msg}")
     
     # Очищаем контекст
     if user_id in user_contexts:
@@ -897,11 +951,245 @@ async def handle_strategy_params_input(message: Message, context: dict):
     
     except Exception as e:
         logger.error(f"Ошибка при обновлении стратегии: {e}")
-        await message.answer(f"❌ Критическая ошибка: {str(e)}")
+        error_msg = str(e)[:100] + "..." if len(str(e)) > 100 else str(e)
+        await message.answer(f"❌ Ошибка: {error_msg}")
     
     # Очищаем контекст
     if user_id in user_contexts:
         del user_contexts[user_id]
+
+@dp.callback_query(F.data.startswith("send_settings|"))
+async def send_settings_menu(callback: CallbackQuery):
+    """Показывает меню настроек отправки подарков"""
+    if not callback.data or not callback.from_user:
+        return
+    
+    # Формат: send_settings|{session_name}|{profile_name}
+    parts = callback.data.split("|")
+    if len(parts) < 3:
+        return
+    
+    session_name = parts[1]
+    profile_name = parts[2]
+    
+    # Проверяем доступ
+    if not has_access_to_session(callback.from_user.id, session_name):
+        await callback.answer("❌ У вас нет доступа к этой сессии")
+        return
+    
+    config = config_manager.get_config(session_name)
+    if not config or profile_name not in config.profiles:
+        await callback.answer("❌ Профиль не найден")
+        return
+    
+    profile = config.profiles[profile_name]
+    session_safe = session_name.replace('_', '\\_').replace('<', '&lt;').replace('>', '&gt;')
+    
+    text = f"📤 <b>Настройки отправки подарков</b>\n\n"
+    text += f"Профиль: <b>{profile_name}</b>\n"
+    text += f"Сессия: <b>{session_safe}</b>\n\n"
+    
+    if profile.send_to_self:
+        text += "📱 <b>Текущий режим:</b> Отправка в собственный профиль\n"
+        text += "Подарки будут отправляться вам самому\n\n"
+    else:
+        text += f"📤 <b>Текущий режим:</b> Отправка в канал\n"
+        text += f"ID канала: <code>{profile.target_channel_id}</code>\n\n"
+    
+    text += "Выберите режим отправки:"
+    
+    builder = InlineKeyboardBuilder()
+    
+    # Кнопка переключения в профиль
+    if not profile.send_to_self:
+        builder.add(InlineKeyboardButton(text="📱 Отправлять в профиль", callback_data=f"set_send_self|{session_name}|{profile_name}"))
+    
+    # Кнопка переключения в канал
+    if profile.send_to_self:
+        builder.add(InlineKeyboardButton(text="📤 Отправлять в канал", callback_data=f"set_send_channel|{session_name}|{profile_name}"))
+    else:
+        builder.add(InlineKeyboardButton(text="✏️ Изменить канал", callback_data=f"set_send_channel|{session_name}|{profile_name}"))
+    
+    builder.add(InlineKeyboardButton(text="🔙 Назад", callback_data=f"profile|{session_name}|{profile_name}"))
+    builder.adjust(1)
+    
+    if callback.message and not isinstance(callback.message, InaccessibleMessage):
+        try:
+            await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        except Exception as e:
+            logger.error(f"Ошибка при редактировании сообщения: {e}")
+
+@dp.callback_query(F.data.startswith("set_send_self|"))
+async def set_send_to_self(callback: CallbackQuery):
+    """Устанавливает отправку подарков в профиль"""
+    if not callback.data or not callback.from_user:
+        return
+    
+    # Формат: set_send_self|{session_name}|{profile_name}
+    parts = callback.data.split("|")
+    if len(parts) < 3:
+        return
+    
+    session_name = parts[1]
+    profile_name = parts[2]
+    
+    # Проверяем доступ
+    if not has_access_to_session(callback.from_user.id, session_name):
+        await callback.answer("❌ У вас нет доступа к этой сессии")
+        return
+    
+    config = config_manager.get_config(session_name)
+    if not config or profile_name not in config.profiles:
+        await callback.answer("❌ Профиль не найден")
+        return
+    
+    # Обновляем настройки
+    config.profiles[profile_name].send_to_self = True
+    config.profiles[profile_name].target_channel_id = 0
+    config_manager.set_config(session_name, config)
+    
+    await callback.answer("✅ Режим изменен: подарки будут отправляться в ваш профиль")
+    
+    # Возвращаемся к меню профиля напрямую
+    if callback.message and not isinstance(callback.message, InaccessibleMessage):
+        try:
+            profile = config.profiles[profile_name]
+            session_safe = session_name.replace('_', '\\_').replace('<', '&lt;').replace('>', '&gt;')
+            
+            text = f"🎯 <b>Профиль \"{profile_name}\" для {session_safe}</b>\n\n"
+            text += f"Статус: {'🔸 Активен' if config.active_profile == profile_name else '⚪ Не активен'}\n"
+            text += f"Отправка: {'📱 В профиль' if profile.send_to_self else f'📤 В канал {profile.target_channel_id}'}\n\n"
+            text += "<b>Стратегии:</b>\n"
+            
+            for i, strategy in enumerate(profile.get_strategies()):
+                remaining = strategy.max_spend - strategy.current_spent
+                text += f"<b>Стратегия {i + 1}</b> (Приоритет: {strategy.priority})\n"
+                text += f"  💰 Диапазон: {strategy.min_price}-{strategy.max_price} ⭐\n"
+                text += f"  💳 Лимит: {strategy.max_spend} ⭐\n"
+                text += f"  📊 Потрачено: {strategy.current_spent} ⭐\n"
+                text += f"  🔋 Остается: {remaining} ⭐\n\n"
+            
+            await callback.message.edit_text(
+                text, 
+                reply_markup=create_profile_menu_keyboard(session_name, profile_name), 
+                parse_mode="HTML"
+            )
+        except Exception as edit_error:
+            logger.error(f"Ошибка при обновлении меню профиля: {edit_error}")
+
+@dp.callback_query(F.data.startswith("set_send_channel|"))
+async def set_send_to_channel_prompt(callback: CallbackQuery):
+    """Запрашивает ID канала для отправки подарков"""
+    if not callback.data or not callback.from_user:
+        return
+    
+    # Формат: set_send_channel|{session_name}|{profile_name}
+    parts = callback.data.split("|")
+    if len(parts) < 3:
+        return
+    
+    session_name = parts[1]
+    profile_name = parts[2]
+    
+    # Проверяем доступ
+    if not has_access_to_session(callback.from_user.id, session_name):
+        await callback.answer("❌ У вас нет доступа к этой сессии")
+        return
+    
+    config = config_manager.get_config(session_name)
+    if not config or profile_name not in config.profiles:
+        await callback.answer("❌ Профиль не найден")
+        return
+    
+    # Устанавливаем контекст
+    user_contexts[callback.from_user.id] = {
+        'waiting_for': 'channel_id',
+        'session_name': session_name,
+        'profile_name': profile_name
+    }
+    
+    text = f"📤 <b>Настройка отправки в канал</b>\n\n"
+    text += f"Профиль: <b>{profile_name}</b>\n"
+    text += f"Сессия: <b>{session_name}</b>\n\n"
+    text += "📝 Введите ID канала для отправки подарков:\n\n"
+    text += "ℹ️ <b>Как узнать ID канала:</b>\n"
+    text += "1. Перешлите любое сообщение из канала боту @userinfobot\n"
+    text += "2. Он покажет 'Chat ID' - это и есть нужный ID\n"
+    text += "3. ID канала всегда начинается с -100...\n\n"
+    text += "Например: <code>-1001234567890</code>"
+    
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="🔙 Отмена", callback_data=f"send_settings|{session_name}|{profile_name}"))
+    
+    if callback.message and not isinstance(callback.message, InaccessibleMessage):
+        try:
+            await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        except Exception as e:
+            logger.error(f"Ошибка при редактировании сообщения: {e}")
+
+async def handle_channel_id_input(message: Message, context: dict):
+    """Обработка ввода ID канала"""
+    if not message.text or not message.from_user:
+        return
+    
+    channel_id_str = message.text.strip()
+    session_name = context['session_name']
+    profile_name = context['profile_name']
+    user_id = message.from_user.id
+    
+    # Проверяем доступ
+    if not has_access_to_session(user_id, session_name):
+        await message.answer("❌ У вас нет доступа к этой сессии")
+        return
+    
+    # Валидация ID канала
+    try:
+        channel_id = int(channel_id_str)
+        
+        # Проверяем, что это похоже на ID канала
+        if not str(channel_id).startswith('-100'):
+            raise ValueError("ID канала должен начинаться с -100")
+        
+        if len(str(channel_id)) < 10:
+            raise ValueError("ID канала слишком короткий")
+        
+    except ValueError as e:
+        await message.answer(f"❌ Неверный формат ID канала: {e}\n\nПример правильного ID: <code>-1001234567890</code>", parse_mode="HTML")
+        return
+    
+    # Обновляем настройки профиля
+    try:
+        config = config_manager.get_config(session_name)
+        if not config or profile_name not in config.profiles:
+            await message.answer("❌ Профиль не найден")
+            return
+        
+        config.profiles[profile_name].send_to_self = False
+        config.profiles[profile_name].target_channel_id = channel_id
+        config_manager.set_config(session_name, config)
+        
+        await message.answer(f"✅ Канал для отправки подарков установлен: <code>{channel_id}</code>", parse_mode="HTML")
+        
+        # Создаем клавиатуру для перехода к профилю
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(text="🎯 Перейти к профилю", callback_data=f"profile|{session_name}|{profile_name}"))
+        builder.add(InlineKeyboardButton(text="📤 Настройки отправки", callback_data=f"send_settings|{session_name}|{profile_name}"))
+        
+        await message.answer(
+            f"Теперь подарки в профиле '{profile_name}' будут отправляться в канал {channel_id}",
+            reply_markup=builder.as_markup()
+        )
+        
+    except Exception as e:
+        logger.error(f"Ошибка при установке канала: {e}")
+        error_msg = str(e)[:50] + "..." if len(str(e)) > 50 else str(e)
+        await message.answer(f"❌ Ошибка: {error_msg}")
+    
+    # Очищаем контекст
+    if user_id in user_contexts:
+        del user_contexts[user_id]
+
+# ...existing code...
 
 async def main():
     """Основная функция для запуска бота"""

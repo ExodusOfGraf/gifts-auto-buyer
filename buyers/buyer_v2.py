@@ -97,6 +97,25 @@ async def execute_purchase_loop(
             log.warning(f"Недостаточно средств. Баланс: {balance} ⭐, Цена: {price} ⭐")
             return
 
+        # Получаем настройки профиля для определения места отправки
+        config = manager.get_config(client.name)
+        if not config:
+            log.error("Конфигурация не найдена")
+            return
+            
+        active_profile = config.get_active_profile()
+        if not active_profile:
+            log.error("Активный профиль не найден")
+            return
+            
+        # Определяем куда отправлять подарки
+        if active_profile.send_to_self:
+            chat_id = "me"
+            destination_info = "профиль"
+        else:
+            chat_id = active_profile.target_channel_id
+            destination_info = f"канал {chat_id}"
+
         # Вычисляем, сколько подарков можем купить по стратегии
         if price <= 0:
             log.warning(f"Цена подарка некорректна ({price} ⭐). Покупка отменена.")
@@ -113,17 +132,18 @@ async def execute_purchase_loop(
         log.info(f"Стратегия: {strategy.min_price}-{strategy.max_price} ⭐ (приоритет {strategy.priority})")
         log.info(f"Баланс: {balance} ⭐. Цена: {price} ⭐. Покупаем {quantity_to_buy} шт.")
         log.info(f"Потрачено по стратегии: {strategy.current_spent}/{strategy.max_spend} ⭐")
+        log.info(f"Место отправки: {destination_info}")
         
         successful_purchases = 0
         for i in range(quantity_to_buy):
             try:
                 log.info(f"Попытка покупки #{i + 1}/{quantity_to_buy}...")
-                await client.send_gift(chat_id="me", gift_id=gift_id)
+                await client.send_gift(chat_id=chat_id, gift_id=gift_id)
                 
                 manager.update_purchase(client.name, price)
                 successful_purchases += 1
                 
-                log.info(f"✅ УСПЕХ! Покупка #{i + 1} гифта ID:{gift_id}!")
+                log.info(f"✅ УСПЕХ! Покупка #{i + 1} гифта ID:{gift_id} отправлен в {destination_info}!")
                 await asyncio.sleep(SLEEP_AFTER_BUY_SECONDS)
                 
             except RPCError as e:

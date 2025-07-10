@@ -27,15 +27,26 @@ logging.basicConfig(
     format='%(asctime)s - [MAIN] - %(levelname)s - %(message)s'
 )
 
-async def run_project():
-    #Запускает сканеры и покупателей параллельно
-    logging.info("Запуск проекта: сканеры и покупатели.")
+async def run_trading_only():
+    """Запускает только сканеры и покупателей без бота-конфигуратора"""
+    logging.info("Запуск торговых компонентов: сканеры и покупатели.")
     
     # Передаем путь к папке data в наши функции
     scanner_task = asyncio.create_task(scanner_main(workdir=DATA_DIR))
     buyer_task = asyncio.create_task(buyer_main(workdir=DATA_DIR))
 
     await asyncio.gather(scanner_task, buyer_task)
+
+async def run_project():
+    """Запускает сканеры, покупателей и бот-конфигуратор параллельно"""
+    logging.info("Запуск проекта: сканеры, покупатели и бот-конфигуратор.")
+    
+    # Передаем путь к папке data в наши функции
+    scanner_task = asyncio.create_task(scanner_main(workdir=DATA_DIR))
+    buyer_task = asyncio.create_task(buyer_main(workdir=DATA_DIR))
+    config_bot_task = asyncio.create_task(config_bot_main())
+
+    await asyncio.gather(scanner_task, buyer_task, config_bot_task)
 
 if __name__ == "__main__":
     try:
@@ -52,11 +63,15 @@ if __name__ == "__main__":
             elif mode == "config":
                 logging.info("Запуск бота управления конфигурацией.")
                 asyncio.run(config_bot_main())
+            elif mode == "trading":
+                logging.info("Запуск торговых компонентов (сканеры + покупатели).")
+                asyncio.run(run_trading_only())
             else:
-                logging.warning(f"Неизвестный режим '{mode}'. Запускаем все компоненты.")
+                logging.warning(f"Неизвестный режим '{mode}'. Доступные режимы: scanner, buyer, config, trading")
+                logging.info("Запускаем все компоненты.")
                 asyncio.run(run_project())
         else:
-            logging.info("Запуск в режиме 'все компоненты'.")
+            logging.info("Запуск в режиме 'все компоненты' (сканеры + покупатели + бот-конфигуратор).")
             asyncio.run(run_project())
 
     except (KeyboardInterrupt, SystemExit):
