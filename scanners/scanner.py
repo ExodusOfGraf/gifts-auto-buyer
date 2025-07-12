@@ -8,7 +8,8 @@ from pyrogram.errors import RPCError
 
 from app.config import (
     API_ID, API_HASH, SCANNER_SESSIONS, TARGET_CHANNEL_ID,
-    KNOWN_GIFTS_FILE_NAME, CHECK_INTERVAL_SECONDS
+    KNOWN_GIFTS_FILE_NAME, CHECK_INTERVAL_SECONDS,
+    MAX_GIFTS_TO_SEND, MESSAGE_SEND_DELAY, SCANNER_TEST_MODE
 )
 
 logging.basicConfig(
@@ -37,24 +38,30 @@ async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_pat
     log.info(f"Проверка с аккаунта '{client.name}'...")
     all_gifts = await client.get_available_gifts()
 
-    # ВРЕМЕННО ДЛЯ ТЕСТИРОВАНИЯ: берем ВСЕ подарки, а не только лимитированные
-    # Для возврата к прежней логике раскомментируйте строку ниже и закомментируйте следующую:
-    # rare_gifts = [gift for gift in all_gifts if gift.is_limited]
-    rare_gifts = all_gifts  # Берем все подарки для тестирования
+    # Настраиваемая фильтрация подарков на основе конфигурации
+    if SCANNER_TEST_MODE:
+        # Режим тестирования: берем ВСЕ подарки
+        rare_gifts = all_gifts
+        log.info(f"Режим тестирования: обрабатываем все подарки ({len(all_gifts)} шт.)")
+    else:
+        # Продакшен режим: только лимитированные подарки
+        rare_gifts = [gift for gift in all_gifts if gift.is_limited]
+        log.info(f"Продакшен режим: обрабатываем только лимитированные подарки ({len(rare_gifts)} шт.)")
+    
     current_rare_gift_ids = {gift.id for gift in rare_gifts}
     
     new_gift_ids = current_rare_gift_ids - known_ids
     
     if new_gift_ids:
-        log.warning(f"💎 НАЙДЕНЫ НОВЫЕ РЕДКИЕ ПОДАРКИ! Количество: {len(new_gift_ids)}. Аккаунт: {client.name}")
+        gift_type = "ПОДАРКИ" if SCANNER_TEST_MODE else "РЕДКИЕ ПОДАРКИ"
+        log.warning(f"💎 НАЙДЕНЫ НОВЫЕ {gift_type}! Количество: {len(new_gift_ids)}. Аккаунт: {client.name}")
         rare_gifts_dict = {gift.id: gift for gift in rare_gifts}
         
-        # Ограничиваем количество отправляемых подарков, чтобы избежать FLOOD_WAIT
-        max_gifts_to_send = 5  # Отправляем максимум 5 подарков за раз (уменьшаем для безопасности)
-        gifts_to_send = list(new_gift_ids)[:max_gifts_to_send]
+        # Ограничиваем количество отправляемых подарков из конфигурации
+        gifts_to_send = list(new_gift_ids)[:MAX_GIFTS_TO_SEND]
         
-        if len(new_gift_ids) > max_gifts_to_send:
-            log.info(f"Ограничиваем отправку до {max_gifts_to_send} подарков из {len(new_gift_ids)} найденных")
+        if len(new_gift_ids) > MAX_GIFTS_TO_SEND:
+            log.info(f"Ограничиваем отправку до {MAX_GIFTS_TO_SEND} подарков из {len(new_gift_ids)} найденных")
         
         for i, gift_id in enumerate(gifts_to_send):
             gift_data = rare_gifts_dict[gift_id]
@@ -89,14 +96,15 @@ async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_pat
                         log.warning(f"Пропускаем отправку из-за FLOOD_WAIT для подарка ID: {gift_data.id}")
                         continue
             
-            # Добавляем увеличенную задержку между отправкой сообщений
+            # Добавляем настраиваемую задержку между отправкой сообщений
             if i < len(gifts_to_send) - 1:  # Не ждем после последнего сообщения
-                await asyncio.sleep(15)  # Увеличиваем задержку до 15 секунд между сообщениями
+                await asyncio.sleep(MESSAGE_SEND_DELAY)
         
         # Сохраняем только те подарки, которые были успешно отправлены
         save_gift_ids(known_ids, gifts_file_path)
     else:
-        log.info(f"Новых редких подарков не найдено через аккаунт '{client.name}'.")
+        gift_type = "подарков" if SCANNER_TEST_MODE else "редких подарков"
+        log.info(f"Новых {gift_type} не найдено через аккаунт '{client.name}'.")
     return known_ids
 
 def get_gift_attributes(gift) -> dict:
@@ -124,11 +132,14 @@ def format_gift_message(gift_data, attributes: dict) -> str:
     """Форматирует сообщение с информацией о подарке"""
     gift_name = gift_data.name or gift_data.title or "Безымянный подарок"
     
-    # Основное сообщение (адаптировано для тестирования)
-    if gift_data.is_limited:
-        message = f"💎 **НОВЫЙ РЕДКИЙ ПОДАРОК!** 💎\n\n"
+    # Основное сообщение (адаптируется в зависимости от режима и типа подарка)
+    if SCANNER_TEST_MODE:
+        if gift_data.is_limited:
+            message = f"💎 **НОВЫЙ РЕДКИЙ ПОДАРОК!** 💎\n\n"
+        else:
+            message = f"🎁 **НОВЫЙ ПОДАРОК!** 🎁\n\n"
     else:
-        message = f"🎁 **НОВЫЙ ПОДАРОК!** 🎁\n\n"
+        message = f"💎 **НОВЫЙ РЕДКИЙ ПОДАРОК!** 💎\n\n"
     
     # Основная информация
     message += f"**🎁 Название:** `{gift_name}`\n"
@@ -183,8 +194,20 @@ async def main(workdir: str):
     try:
         await asyncio.gather(*[client.start() for client in clients])
         log.info(f"Все {len(clients)} сканера успешно запущены.")
+        
+        # Проверяем наличие TgCrypto для оптимальной производительности
+        try:
+            import tgcrypto
+            log.info("🚀 TgCrypto установлен - максимальная скорость API!")
+        except ImportError:
+            log.warning("⚠️ TgCrypto не установлен - API будет работать медленнее. Установите: pip install tgcrypto")
+        
         known_gift_ids = load_known_gift_ids(gifts_file_path)
-        log.info(f"Загружено {len(known_gift_ids)} известных ID редких подарков.")
+        
+        mode_text = "тестирования (все подарки)" if SCANNER_TEST_MODE else "продакшена (только лимитированные)"
+        log.info(f"Режим: {mode_text}")
+        log.info(f"Загружено {len(known_gift_ids)} известных ID подарков.")
+        log.info(f"Настройки: макс. подарков={MAX_GIFTS_TO_SEND}, задержка={MESSAGE_SEND_DELAY}с, интервал={CHECK_INTERVAL_SECONDS}с")
         while True:
             for client in clients:
                 try:
@@ -193,7 +216,7 @@ async def main(workdir: str):
                     log.error(f"Ошибка API у клиента '{client.name}': {e}")
                 except Exception as e:
                     log.error(f"Непредвиденная ошибка у клиента '{client.name}': {e}", exc_info=True)
-                await asyncio.sleep(1)
+                # Убираем задержку между сканерами для ускорения обработки
             log.info(f"Цикл проверки завершен. Ожидаем {CHECK_INTERVAL_SECONDS} секунд...")
             await asyncio.sleep(CHECK_INTERVAL_SECONDS)
     finally:

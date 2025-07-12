@@ -9,6 +9,12 @@
 pip install -r requirements.txt
 ```
 
+**⚡ Для максимальной производительности установите TgCrypto:**
+```bash
+pip install tgcrypto
+```
+> TgCrypto ускоряет работу с Telegram API в 5-10 раз за счет оптимизированного шифрования
+
 ### 2. Настройка Telegram-бота
 Отредактируйте `app/config.py`:
 ```python

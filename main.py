@@ -27,6 +27,14 @@ logging.basicConfig(
     format='%(asctime)s - [MAIN] - %(levelname)s - %(message)s'
 )
 
+# Проверяем наличие TgCrypto при запуске системы
+try:
+    import tgcrypto
+    logging.info("🚀 TgCrypto установлен - система работает на максимальной скорости!")
+except ImportError:
+    logging.warning("⚠️ TgCrypto не установлен! Система будет работать медленнее.")
+    logging.warning("💡 Для установки выполните: pip install tgcrypto")
+
 async def run_trading_only():
     """Запускает только сканеры и покупателей без бота-конфигуратора"""
     logging.info("Запуск торговых компонентов: сканеры и покупатели.")
