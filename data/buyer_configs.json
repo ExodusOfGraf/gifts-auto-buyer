@@ -325,8 +325,8 @@
           "max_spend": 5000,
           "priority": 1,
           "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
+          "send_to_self": false,
+          "target_channel_id": -1002619157053
         },
         "strategy_2": {
           "min_price": 500,
@@ -357,7 +357,7 @@
         }
       }
     },
-    "active_profile": "default",
+    "active_profile": "test7",
     "enabled": true,
     "auto_reset_daily": true,
     "last_reset": "2025-07-09",

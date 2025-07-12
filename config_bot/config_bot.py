@@ -1155,17 +1155,16 @@ async def handle_strategy_channel_id_input(message: Message, context: dict):
     if user_id in user_contexts:
         del user_contexts[user_id]
 
-    # Создаем фейковый CallbackQuery, чтобы вернуться в меню настроек
-    # Это немного хак, но позволяет переиспользовать код и избежать дублирования
-    from aiogram.types import User, Chat
-    fake_callback = CallbackQuery(
-        id="fake_callback",
-        from_user=message.from_user,
-        chat_instance="fake_chat_instance",
-        message=message,
-        data=f"edit_strategy_send|{session_name}|{profile_name}|{strategy_num}"
+    # Создаем клавиатуру для возврата в меню настроек стратегии
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📤 Настройки отправки", callback_data=f"edit_strategy_send|{session_name}|{profile_name}|{strategy_num}")
+    builder.button(text="🎯 К профилю", callback_data=f"profile|{session_name}|{profile_name}")
+    builder.adjust(1)
+    
+    await message.answer(
+        f"Канал для Стратегии {strategy_num} успешно настроен.",
+        reply_markup=builder.as_markup()
     )
-    await edit_strategy_send_menu(fake_callback)
 
 
 @dp.callback_query(F.data.startswith("edit_strategy_params|"))
