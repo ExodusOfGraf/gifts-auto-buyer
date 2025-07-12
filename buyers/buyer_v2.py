@@ -97,23 +97,12 @@ async def execute_purchase_loop(
             log.warning(f"Недостаточно средств. Баланс: {balance} ⭐, Цена: {price} ⭐")
             return
 
-        # Получаем настройки профиля для определения места отправки
-        config = manager.get_config(client.name)
-        if not config:
-            log.error("Конфигурация не найдена")
-            return
-            
-        active_profile = config.get_active_profile()
-        if not active_profile:
-            log.error("Активный профиль не найден")
-            return
-            
-        # Определяем куда отправлять подарки
-        if active_profile.send_to_self:
+        # Определяем куда отправлять подарки на основе настроек стратегии
+        if strategy.send_to_self:
             chat_id = "me"
             destination_info = "профиль"
         else:
-            chat_id = active_profile.target_channel_id
+            chat_id = strategy.target_channel_id
             destination_info = f"канал {chat_id}"
 
         # Вычисляем, сколько подарков можем купить по стратегии
@@ -200,21 +189,11 @@ async def run_buyer(session_name: str, workdir: str):
     """Запускает и поддерживает одного клиента-покупателя"""
     client = Client(session_name, api_id=API_ID, api_hash=API_HASH, workdir=workdir)
     client.add_handler(MessageHandler(gift_handler, filters=filters.chat(TARGET_CHANNEL_ID) & filters.text))
-    await client.start()
-    log = logging.getLogger(client.name)
-    log.info(f"Бот-покупатель запущен и слушает канал {TARGET_CHANNEL_ID}.")
     
-    # Создаем дефолтную конфигурацию если её нет
-    if config_manager and not config_manager.get_config(session_name):
-        config_manager.create_default_config(session_name, 0)  # owner_id = 0 для совместимости
-        log.info(f"Создана дефолтная конфигурация для {session_name}")
-    
-    await asyncio.Event().wait()
-    await client.stop()
-    log.info("Бот-покупатель остановлен.")
+    logging.getLogger(client.name).info(f"Бот-покупатель {client.name} запущен и слушает канал {TARGET_CHANNEL_ID}.")
 
-async def main(workdir: str):
-    """Основная функция для запуска всех покупателей"""
+async def main(workdir: str = "data"):
+    """Основная функция для запуска всех ботов-покупателей"""
     global config_manager
     
     # Инициализируем менеджер конфигураций

@@ -12,8 +12,6 @@ class BuyingProfile:
     strategy_2: 'BuyingStrategy'  # Приоритет 2  
     strategy_3: 'BuyingStrategy'  # Приоритет 3
     strategy_4: 'BuyingStrategy'  # Приоритет 4 (самый низкий)
-    send_to_self: bool = True  # True - отправлять себе, False - в канал
-    target_channel_id: int = 0  # ID канала для отправки (если send_to_self = False)
     
     def get_strategies(self) -> List['BuyingStrategy']:
         """Возвращает все стратегии профиля отсортированные по приоритету"""
@@ -35,6 +33,8 @@ class BuyingStrategy:
     max_spend: int  # Максимум звезд для трат на этой стратегии
     priority: int   # Приоритет (1 - самый высокий)
     current_spent: int = 0  # Текущая потраченная сумма
+    send_to_self: bool = True  # True - отправлять себе, False - в канал
+    target_channel_id: int = 0  # ID канала для отправки (если send_to_self = False)
     
     def can_buy(self, price: int) -> bool:
         """Проверяет, можно ли купить подарок по этой стратегии"""
@@ -129,19 +129,25 @@ class BuyerConfigManager:
                 profiles = {}
                 profiles_data = config_data.get('profiles', {})
                 for profile_name, profile_data in profiles_data.items():
-                    strategy_1 = BuyingStrategy(**profile_data['strategy_1'])
-                    strategy_2 = BuyingStrategy(**profile_data['strategy_2'])
-                    strategy_3 = BuyingStrategy(**profile_data['strategy_3'])
-                    strategy_4 = BuyingStrategy(**profile_data['strategy_4'])
+                    # Загружаем стратегии с новыми полями отправки
+                    strategy_1_data = profile_data['strategy_1']
+                    strategy_1 = BuyingStrategy(**strategy_1_data)
+                    
+                    strategy_2_data = profile_data['strategy_2']
+                    strategy_2 = BuyingStrategy(**strategy_2_data)
+                    
+                    strategy_3_data = profile_data['strategy_3']
+                    strategy_3 = BuyingStrategy(**strategy_3_data)
+                    
+                    strategy_4_data = profile_data['strategy_4']
+                    strategy_4 = BuyingStrategy(**strategy_4_data)
                     
                     profiles[profile_name] = BuyingProfile(
                         name=profile_name,
                         strategy_1=strategy_1,
                         strategy_2=strategy_2,
                         strategy_3=strategy_3,
-                        strategy_4=strategy_4,
-                        send_to_self=profile_data.get('send_to_self', True),
-                        target_channel_id=profile_data.get('target_channel_id', 0)
+                        strategy_4=strategy_4
                     )
                 
                 config = BuyerConfig(
@@ -169,9 +175,7 @@ class BuyerConfigManager:
                     'strategy_1': asdict(profile.strategy_1),
                     'strategy_2': asdict(profile.strategy_2),
                     'strategy_3': asdict(profile.strategy_3),
-                    'strategy_4': asdict(profile.strategy_4),
-                    'send_to_self': profile.send_to_self,
-                    'target_channel_id': profile.target_channel_id
+                    'strategy_4': asdict(profile.strategy_4)
                 }
             
             data[session_name] = {
@@ -207,12 +211,10 @@ class BuyerConfigManager:
         # Создаем дефолтный профиль
         default_profile = BuyingProfile(
             name="default",
-            strategy_1=BuyingStrategy(min_price=1000, max_price=10000, max_spend=5000, priority=1),
-            strategy_2=BuyingStrategy(min_price=500, max_price=999, max_spend=3000, priority=2),
-            strategy_3=BuyingStrategy(min_price=100, max_price=499, max_spend=2000, priority=3),
-            strategy_4=BuyingStrategy(min_price=1, max_price=99, max_spend=1000, priority=4),
-            send_to_self=True,
-            target_channel_id=0
+            strategy_1=BuyingStrategy(min_price=1000, max_price=10000, max_spend=5000, priority=1, send_to_self=True, target_channel_id=0),
+            strategy_2=BuyingStrategy(min_price=500, max_price=999, max_spend=3000, priority=2, send_to_self=True, target_channel_id=0),
+            strategy_3=BuyingStrategy(min_price=100, max_price=499, max_spend=2000, priority=3, send_to_self=True, target_channel_id=0),
+            strategy_4=BuyingStrategy(min_price=1, max_price=99, max_spend=1000, priority=4, send_to_self=True, target_channel_id=0)
         )
         
         config = BuyerConfig(
@@ -307,12 +309,10 @@ class BuyerConfigManager:
         
         new_profile = BuyingProfile(
             name=profile_name,
-            strategy_1=BuyingStrategy(min_price=1000, max_price=10000, max_spend=5000, priority=1),
-            strategy_2=BuyingStrategy(min_price=500, max_price=999, max_spend=3000, priority=2),
-            strategy_3=BuyingStrategy(min_price=100, max_price=499, max_spend=2000, priority=3),
-            strategy_4=BuyingStrategy(min_price=1, max_price=99, max_spend=1000, priority=4),
-            send_to_self=True,
-            target_channel_id=0
+            strategy_1=BuyingStrategy(min_price=1000, max_price=10000, max_spend=5000, priority=1, send_to_self=True, target_channel_id=0),
+            strategy_2=BuyingStrategy(min_price=500, max_price=999, max_spend=3000, priority=2, send_to_self=True, target_channel_id=0),
+            strategy_3=BuyingStrategy(min_price=100, max_price=499, max_spend=2000, priority=3, send_to_self=True, target_channel_id=0),
+            strategy_4=BuyingStrategy(min_price=1, max_price=99, max_spend=1000, priority=4, send_to_self=True, target_channel_id=0)
         )
         
         config.profiles[profile_name] = new_profile
