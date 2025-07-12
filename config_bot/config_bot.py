@@ -97,9 +97,7 @@ def create_sessions_keyboard(user_id: int):
 def create_session_menu_keyboard(session_name: str):
     """Создает меню для конкретной сессии"""
     builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(text="📈 Статистика", callback_data=f"session_stats_{session_name}"))
     builder.add(InlineKeyboardButton(text="🎯 Профили закупки", callback_data=f"profiles|{session_name}"))
-    builder.add(InlineKeyboardButton(text="🔄 Сбросить траты", callback_data=f"reset_{session_name}"))
     
     config = config_manager.get_config(session_name)
     if config:
@@ -108,7 +106,7 @@ def create_session_menu_keyboard(session_name: str):
         builder.add(InlineKeyboardButton(text=status_text, callback_data=f"toggle_{toggle_action}_{session_name}"))
     
     builder.add(InlineKeyboardButton(text="🔙 Назад", callback_data="settings"))
-    builder.adjust(2)
+    builder.adjust(1)
     return builder.as_markup()
 
 def create_profiles_keyboard(session_name: str):
