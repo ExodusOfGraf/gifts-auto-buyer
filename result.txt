@@ -1,0 +1,53 @@
+2025-07-12 20:35:34,976 - INFO - [pyrogram.session.session] - Device: CPython 3.13.5 - Pyrogram 2.3.68
+2025-07-12 20:35:34,976 - INFO - [pyrogram.session.session] - System: Linux 6.15.4-zen2-1-zen (en)
+2025-07-12 20:35:34,976 - INFO - [pyrogram.session.session] - Session started
+2025-07-12 20:35:34,977 - INFO - [pyrogram.session.session] - PingTask started
+2025-07-12 20:35:35,133 - INFO - [pyrogram.dispatcher] - Started 16 HandlerTasks
+2025-07-12 20:35:35,172 - INFO - [pyrogram.dispatcher] - Started 16 HandlerTasks
+2025-07-12 20:35:35,172 - INFO - [buyer_graf_main] - ✅ Бот-покупатель buyer_graf_main запущен и слушает канал -1002619157053
+2025-07-12 20:35:35,270 - INFO - [buyer_graf_main] - 💰 Текущий баланс: 43 ⭐
+2025-07-12 20:35:35,355 - INFO - [pyrogram.session.session] - Session initialized: Layer 207
+2025-07-12 20:35:35,355 - INFO - [pyrogram.session.session] - Device: CPython 3.13.5 - Pyrogram 2.3.68
+2025-07-12 20:35:35,355 - INFO - [pyrogram.session.session] - System: Linux 6.15.4-zen2-1-zen (en)
+2025-07-12 20:35:35,355 - INFO - [pyrogram.session.session] - Session started
+2025-07-12 20:35:35,356 - INFO - [pyrogram.session.session] - PingTask started
+2025-07-12 20:35:35,637 - INFO - [pyrogram.session.session] - Session initialized: Layer 207
+2025-07-12 20:35:35,637 - INFO - [pyrogram.session.session] - Device: CPython 3.13.5 - Pyrogram 2.3.68
+2025-07-12 20:35:35,637 - INFO - [pyrogram.session.session] - System: Linux 6.15.4-zen2-1-zen (en)
+2025-07-12 20:35:35,637 - INFO - [pyrogram.session.session] - Session started
+2025-07-12 20:35:35,638 - INFO - [pyrogram.session.session] - PingTask started
+2025-07-12 20:35:35,714 - INFO - [pyrogram.dispatcher] - Started 16 HandlerTasks
+2025-07-12 20:35:36,170 - INFO - [pyrogram.dispatcher] - Started 16 HandlerTasks
+2025-07-12 20:35:36,170 - INFO - [scanners.scanner] - Все 3 сканера успешно запущены.
+2025-07-12 20:35:36,170 - INFO - [scanners.scanner] - Загружено 128 известных ID подарков.
+2025-07-12 20:35:36,170 - INFO - [scanners.scanner] - Проверка с аккаунта 'scan_1'...
+2025-07-12 20:35:45,925 - WARNING - [scanners.scanner] - 💎 НАЙДЕНЫ НОВЫЕ ПОДАРКИ! Количество: 1. Аккаунт: scan_1
+2025-07-12 20:35:46,267 - INFO - [buyer_graf_main] - 🔔 Получено новое сообщение в целевом канале от buyer_graf_main!
+2025-07-12 20:35:46,267 - INFO - [buyer_graf_main] - 📝 Текст сообщения: 🎁 НОВЫЙ ПОДАРОК! 🎁
+
+🎁 Название: Безымянный подарок
+💰 Цена: 15 ⭐
+📊 Всего доступно: Неограниченно...
+2025-07-12 20:35:46,267 - INFO - [buyer_graf_main] - 🎁 Обнаружен подарок ID:5170145012310081615, цена:15 ⭐
+2025-07-12 20:35:46,267 - INFO - [buyer_graf_main] - 🔄 Сбрасываем ежедневные траты для buyer_graf_main
+2025-07-12 20:35:46,268 - INFO - [buyer_graf_main] - ✅ Выбрана стратегия: 10-20 ⭐ (приоритет 4)
+2025-07-12 20:35:46,268 - INFO - [buyer_graf_main] - 💳 Лимит стратегии: 20 ⭐, потрачено: 0 ⭐
+2025-07-12 20:35:46,268 - INFO - [buyer_graf_main] - ✅ Найдена подходящая стратегия для покупки
+2025-07-12 20:35:46,473 - INFO - [scanners.scanner] - Отправлено текстовое сообщение для подарка 'None' (ID: 5170145012310081615)
+2025-07-12 20:35:46,481 - INFO - [buyer_graf_main] - Стратегия: 10-20 ⭐ (приоритет 4)
+2025-07-12 20:35:46,481 - INFO - [buyer_graf_main] - Баланс: 43 ⭐. Цена: 15 ⭐. Покупаем 1 шт.
+2025-07-12 20:35:46,481 - INFO - [buyer_graf_main] - Потрачено по стратегии: 0/20 ⭐
+2025-07-12 20:35:46,481 - INFO - [buyer_graf_main] - Место отправки: профиль
+2025-07-12 20:35:46,481 - INFO - [buyer_graf_main] - Попытка покупки #1/1...
+2025-07-12 20:35:46,902 - INFO - [buyer_graf_main] - ✅ УСПЕХ! Покупка #1 гифта ID:5170145012310081615 отправлен в профиль!
+2025-07-12 20:35:47,475 - INFO - [scanners.scanner] - Проверка с аккаунта 'scan_2'...
+2025-07-12 20:35:54,706 - INFO - [scanners.scanner] - Новых подарков не найдено через аккаунт 'scan_2'.
+2025-07-12 20:35:55,707 - INFO - [scanners.scanner] - Проверка с аккаунта 'scan_3'...
+2025-07-12 20:35:59,745 - INFO - [scanners.scanner] - Новых подарков не найдено через аккаунт 'scan_3'.
+2025-07-12 20:36:00,745 - INFO - [scanners.scanner] - Цикл проверки завершен. Ожидаем 2 секунд...
+2025-07-12 20:36:02,746 - INFO - [scanners.scanner] - Проверка с аккаунта 'scan_1'...
+^C2025-07-12 20:36:04,124 - WARNING - [aiogram.dispatcher] - Received SIGINT signal
+2025-07-12 20:36:04,125 - INFO - [aiogram.dispatcher] - Polling stopped for bot @test_gifts_auto_buyer_bot id=8022170559 - 'Скупщик'
+2025-07-12 20:36:04,125 - INFO - [aiogram.dispatcher] - Polling stopped
+2025-07-12 20:36:08,981 - INFO - [scanners.scanner] - Новых подарков не найдено через аккаунт 'scan_1'.
+2025-07-12 20:36:09,982 - INFO - [scanners.scanner] - Проверка с аккаунта 'scan_2'...

@@ -213,7 +213,9 @@ async def show_stats(callback: CallbackQuery):
     for session in user_sessions:
         config = config_manager.get_config(session)
         if not config:
-            config = config_manager.create_default_config(session)
+            # НЕ создаем новую конфигурацию, просто пропускаем сессию без конфига
+            logger.warning(f"Конфигурация для сессии {session} не найдена, пропускаем")
+            continue
         
         status = "✅" if config.enabled else "❌"
         session_safe = session.replace('_', '\\_').replace('<', '&lt;').replace('>', '&gt;')
@@ -272,10 +274,11 @@ async def session_menu(callback: CallbackQuery):
         await callback.answer("❌ У вас нет доступа к этой сессии")
         return
     
-    # Создаем конфигурацию по умолчанию, если её нет
+    # НЕ создаем конфигурацию, просто получаем существующую
     config = config_manager.get_config(session_name)
     if not config:
-        config = config_manager.create_default_config(session_name, callback.from_user.id)
+        await callback.answer("❌ Конфигурация не найдена")
+        return
     
     status = "✅ Включен" if config.enabled else "❌ Выключен"
     session_safe = session_name.replace('_', '\\_').replace('<', '&lt;').replace('>', '&gt;')

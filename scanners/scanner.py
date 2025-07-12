@@ -37,13 +37,16 @@ async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_pat
     log.info(f"Проверка с аккаунта '{client.name}'...")
     all_gifts = await client.get_available_gifts()
 
-    rare_gifts = [gift for gift in all_gifts if gift.is_limited]
+    # ВРЕМЕННО ДЛЯ ТЕСТИРОВАНИЯ: берем ВСЕ подарки, а не только лимитированные
+    # Для возврата к прежней логике раскомментируйте строку ниже и закомментируйте следующую:
+    # rare_gifts = [gift for gift in all_gifts if gift.is_limited]
+    rare_gifts = all_gifts  # Берем все подарки для тестирования
     current_rare_gift_ids = {gift.id for gift in rare_gifts}
     
     new_gift_ids = current_rare_gift_ids - known_ids
     
     if new_gift_ids:
-        log.warning(f"💎 НАЙДЕНЫ НОВЫЕ РЕДКИЕ ПОДАРКИ! Количество: {len(new_gift_ids)}. Аккаунт: {client.name}")
+        log.warning(f"💎 НАЙДЕНЫ НОВЫЕ ПОДАРКИ! Количество: {len(new_gift_ids)}. Аккаунт: {client.name}")
         rare_gifts_dict = {gift.id: gift for gift in rare_gifts}
         
         # Ограничиваем количество отправляемых подарков, чтобы избежать FLOOD_WAIT
@@ -93,7 +96,7 @@ async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_pat
         # Сохраняем только те подарки, которые были успешно отправлены
         save_gift_ids(known_ids, gifts_file_path)
     else:
-        log.info(f"Новых редких подарков не найдено через аккаунт '{client.name}'.")
+        log.info(f"Новых подарков не найдено через аккаунт '{client.name}'.")
     return known_ids
 
 def get_gift_attributes(gift) -> dict:
@@ -121,8 +124,11 @@ def format_gift_message(gift_data, attributes: dict) -> str:
     """Форматирует сообщение с информацией о подарке"""
     gift_name = gift_data.name or gift_data.title or "Безымянный подарок"
     
-    # Основное сообщение
-    message = f"💎 **НОВЫЙ РЕДКИЙ ПОДАРОК!** 💎\n\n"
+    # Основное сообщение (адаптировано для тестирования)
+    if gift_data.is_limited:
+        message = f"💎 **НОВЫЙ РЕДКИЙ ПОДАРОК!** 💎\n\n"
+    else:
+        message = f"🎁 **НОВЫЙ ПОДАРОК!** 🎁\n\n"
     
     # Основная информация
     message += f"**🎁 Название:** `{gift_name}`\n"
@@ -178,7 +184,7 @@ async def main(workdir: str):
         await asyncio.gather(*[client.start() for client in clients])
         log.info(f"Все {len(clients)} сканера успешно запущены.")
         known_gift_ids = load_known_gift_ids(gifts_file_path)
-        log.info(f"Загружено {len(known_gift_ids)} известных ID редких подарков.")
+        log.info(f"Загружено {len(known_gift_ids)} известных ID подарков.")  # Убрано слово "редких" для тестирования
         while True:
             for client in clients:
                 try:

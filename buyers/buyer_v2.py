@@ -60,22 +60,25 @@ async def get_purchase_parameters(
     
     config = manager.get_config(client.name)
     if not config:
-        log.warning(f"Конфигурация для {client.name} не найдена. Создаем дефолтную.")
+        log.warning(f"⚠️ Конфигурация для {client.name} не найдена. Создаем дефолтную.")
         config = manager.create_default_config(client.name, 0)
 
     if not config.enabled:
-        log.info(f"Покупатель {client.name} отключен. Пропускаем покупку.")
+        log.info(f"⏸️ Покупатель {client.name} отключен. Пропускаем покупку.")
         return None, None
 
     if config.should_reset_daily():
-        log.info(f"Сбрасываем ежедневные траты для {client.name}")
+        log.info(f"🔄 Сбрасываем ежедневные траты для {client.name}")
         config.reset_daily_spending()
         manager.set_config(client.name, config)
 
     strategy = config.get_best_strategy(price)
     if not strategy:
-        log.info(f"Нет подходящей стратегии для подарка ценой {price} ⭐. Пропускаем.")
+        log.info(f"❌ Нет подходящей стратегии для подарка ценой {price} ⭐. Пропускаем.")
         return None, None
+    
+    log.info(f"✅ Выбрана стратегия: {strategy.min_price}-{strategy.max_price} ⭐ (приоритет {strategy.priority})")
+    log.info(f"💳 Лимит стратегии: {strategy.max_spend} ⭐, потрачено: {strategy.current_spent} ⭐")
         
     return config, strategy
 
@@ -166,7 +169,8 @@ async def execute_purchase_loop(
 async def gift_handler(client: Client, message):
     """Обработчик новых подарков с поддержкой стратегий покупки"""
     log = logging.getLogger(client.name)
-    log.info("Получено новое сообщение в целевом канале!")
+    log.info(f"🔔 Получено новое сообщение в целевом канале от {client.name}!")
+    log.info(f"📝 Текст сообщения: {message.text[:100]}..." if len(message.text) > 100 else f"📝 Текст сообщения: {message.text}")
     
     if config_manager is None:
         log.error("Менеджер конфигураций не инициализирован!")
@@ -174,15 +178,21 @@ async def gift_handler(client: Client, message):
     
     gift_data = parse_gift_data(message.text)
     if not gift_data:
+        log.info("❌ Сообщение не содержит данных о подарке")
         return
 
     gift_id = gift_data['GIFT_ID']
     price = gift_data['PRICE']
     
+    log.info(f"🎁 Обнаружен подарок ID:{gift_id}, цена:{price} ⭐")
+    
     config, strategy = await get_purchase_parameters(client, price, config_manager)
     
     if config and strategy:
+        log.info(f"✅ Найдена подходящая стратегия для покупки")
         await execute_purchase_loop(client, gift_id, price, strategy, config_manager)
+    else:
+        log.info(f"❌ Не найдена подходящая стратегия или конфигурация отключена")
 
 
 async def run_buyer(session_name: str, workdir: str):
@@ -190,7 +200,28 @@ async def run_buyer(session_name: str, workdir: str):
     client = Client(session_name, api_id=API_ID, api_hash=API_HASH, workdir=workdir)
     client.add_handler(MessageHandler(gift_handler, filters=filters.chat(TARGET_CHANNEL_ID) & filters.text))
     
-    logging.getLogger(client.name).info(f"Бот-покупатель {client.name} запущен и слушает канал {TARGET_CHANNEL_ID}.")
+    logger = logging.getLogger(client.name)
+    
+    try:
+        await client.start()
+        logger.info(f"✅ Бот-покупатель {client.name} запущен и слушает канал {TARGET_CHANNEL_ID}")
+        
+        # Проверяем баланс при запуске
+        try:
+            balance = await client.get_stars_balance()
+            logger.info(f"💰 Текущий баланс: {balance} ⭐")
+        except Exception as e:
+            logger.warning(f"Не удалось получить баланс: {e}")
+        
+        # Ожидаем сообщения (запускаем бесконечный цикл)
+        await asyncio.sleep(float('inf'))
+        
+    except Exception as e:
+        logger.error(f"Ошибка при запуске покупателя {client.name}: {e}")
+    finally:
+        if client.is_connected:
+            await client.stop()
+            logger.info(f"Покупатель {client.name} остановлен")
 
 async def main(workdir: str = "data"):
     """Основная функция для запуска всех ботов-покупателей"""
