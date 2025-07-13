@@ -1,0 +1,413 @@
+"""
+Модуль с callback-обработчиками для бота управления конфигурацией
+"""
+
+import re
+import logging
+from aiogram import F
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InaccessibleMessage
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+from .keyboards import (
+    create_main_keyboard, 
+    create_sessions_keyboard, 
+    create_session_menu_keyboard,
+    create_profiles_keyboard,
+    create_profile_menu_keyboard
+)
+
+logger = logging.getLogger(__name__)
+
+
+def register_callbacks(dp, config_manager, user_contexts, has_access_to_session, get_user_sessions):
+    """Регистрирует все callback-обработчики"""
+    
+    @dp.callback_query(F.data == "back_to_main")
+    async def back_to_main(callback: CallbackQuery):
+        """Возврат к главному меню"""
+        await callback.answer()  # Отвечаем на callback сразу
+        
+        if callback.message and not isinstance(callback.message, InaccessibleMessage):
+            try:
+                await callback.message.edit_text(
+                    "🎁 <b>Панель управления покупателями подарков</b>\n\n"
+                    "Добро пожаловать в систему управления автоматической покупкой подарков!\n\n"
+                    "Выберите действие:",
+                    reply_markup=create_main_keyboard(),
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                logger.error(f"Ошибка при возврате к главному меню: {e}")
+
+    @dp.callback_query(F.data == "stats")
+    async def show_stats(callback: CallbackQuery):
+        """Показывает общую статистику"""
+        await callback.answer()  # Отвечаем на callback сразу
+        
+        if not callback.from_user:
+            return
+        
+        user_sessions = get_user_sessions(callback.from_user.username)
+        
+        if not user_sessions:
+            await callback.answer("❌ У вас нет доступных сессий")
+            return
+        
+        text = "📊 <b>Статистика ваших покупателей:</b>\n\n"
+        
+        for session in user_sessions:
+            config = config_manager.get_config(session)
+            if config:
+                status = "✅ Включен" if config.enabled else "❌ Выключен"
+                text += f"<b>{session}</b>\n"
+                text += f"  Статус: {status}\n"
+                text += f"  Активный профиль: {config.active_profile}\n\n"
+        
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_main"))
+        
+        if callback.message and not isinstance(callback.message, InaccessibleMessage):
+            try:
+                await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+            except Exception as e:
+                logger.error(f"Ошибка при показе статистики: {e}")
+
+    @dp.callback_query(F.data == "settings")
+    async def show_settings(callback: CallbackQuery):
+        """Показывает настройки"""
+        await callback.answer()  # Отвечаем на callback сразу
+        
+        if not callback.from_user:
+            return
+        
+        user_sessions = get_user_sessions(callback.from_user.username)
+        
+        if not user_sessions:
+            await callback.answer("❌ У вас нет доступных сессий")
+            return
+        
+        if callback.message and not isinstance(callback.message, InaccessibleMessage):
+            try:
+                await callback.message.edit_text(
+                    "⚙️ <b>Настройки</b>\n\nВыберите сессию для настройки:",
+                    reply_markup=create_sessions_keyboard(callback.from_user, get_user_sessions),
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                logger.error(f"Ошибка при показе настроек: {e}")
+
+    @dp.callback_query(F.data.startswith("session_"))
+    async def session_menu(callback: CallbackQuery):
+        """Меню для конкретной сессии"""
+        await callback.answer()  # Отвечаем на callback сразу
+        
+        if not callback.data or not callback.from_user:
+            return
+        
+        session_name = callback.data.split("_", 1)[1]
+        
+        # Проверяем доступ
+        if not has_access_to_session(callback.from_user.username, session_name):
+            await callback.answer("❌ У вас нет доступа к этой сессии")
+            return
+        
+        # НЕ создаем конфигурацию, просто получаем существующую
+        config = config_manager.get_config(session_name)
+        if not config:
+            await callback.answer("❌ Конфигурация не найдена. Создайте конфигурацию через настройки профилей.")
+            return
+        
+        status = "✅ Включен" if config.enabled else "❌ Выключен"
+        session_safe = session_name.replace('_', '\\_').replace('<', '&lt;').replace('>', '&gt;')
+        
+        text = f"⚙️ <b>Настройки для {session_safe}</b>\n\n"
+        text += f"Статус: {status}\n"
+        text += f"Активный профиль: <b>{config.active_profile}</b>\n\n"
+        text += "Выберите действие:"
+        
+        if callback.message and not isinstance(callback.message, InaccessibleMessage):
+            try:
+                await callback.message.edit_text(
+                    text,
+                    reply_markup=create_session_menu_keyboard(session_name, config_manager),
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                logger.error(f"Ошибка при показе меню сессии: {e}")
+
+    @dp.callback_query(F.data.startswith("profiles|"))
+    async def show_profiles(callback: CallbackQuery):
+        """Показывает профили для сессии"""
+        await callback.answer()  # Отвечаем на callback сразу
+        
+        if not callback.data or not callback.from_user:
+            return
+        
+        # Очищаем контекст пользователя
+        if callback.from_user.id in user_contexts:
+            del user_contexts[callback.from_user.id]
+        
+        # Формат: profiles|{session_name}
+        session_name = callback.data.split("|")[1]
+        
+        # Проверяем доступ
+        if not has_access_to_session(callback.from_user.username, session_name):
+            await callback.answer("❌ У вас нет доступа к этой сессии")
+            return
+        
+        config = config_manager.get_config(session_name)
+        if not config:
+            await callback.answer("❌ Конфигурация не найдена")
+            return
+        
+        session_safe = session_name.replace('_', '\\_').replace('<', '&lt;').replace('>', '&gt;')
+        
+        text = f"🎯 <b>Профили закупки для {session_safe}</b>\n\n"
+        text += f"Активный профиль: <b>{config.active_profile}</b>\n\n"
+        text += "Выберите профиль для настройки:"
+        
+        if callback.message and not isinstance(callback.message, InaccessibleMessage):
+            try:
+                await callback.message.edit_text(
+                    text,
+                    reply_markup=create_profiles_keyboard(session_name, config_manager),
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                logger.error(f"Ошибка при показе профилей: {e}")
+
+    @dp.callback_query(F.data.startswith("profile|"))
+    async def show_profile_menu(callback: CallbackQuery):
+        """Показывает меню для конкретного профиля"""
+        await callback.answer()  # Отвечаем на callback сразу
+        
+        if not callback.data or not callback.from_user:
+            return
+        
+        # Очищаем контекст пользователя
+        if callback.from_user.id in user_contexts:
+            del user_contexts[callback.from_user.id]
+        
+        # Формат: profile|{session_name}|{profile_name}
+        parts = callback.data.split("|")
+        if len(parts) < 3:
+            return
+        
+        session_name = parts[1]
+        profile_name = parts[2]
+        
+        # Проверяем доступ
+        if not has_access_to_session(callback.from_user.username, session_name):
+            await callback.answer("❌ У вас нет доступа к этой сессии")
+            return
+        
+        config = config_manager.get_config(session_name)
+        if not config or profile_name not in config.profiles:
+            await callback.answer("❌ Профиль не найден")
+            return
+        
+        profile = config.profiles[profile_name]
+        session_safe = session_name.replace('_', '\\_').replace('<', '&lt;').replace('>', '&gt;')
+        
+        text = f"🎯 <b>Профиль \"{profile_name}\" для {session_safe}</b>\n\n"
+        text += f"Статус: {'🔸 Активен' if config.active_profile == profile_name else '⚪ Не активен'}\n\n"
+        text += "<b>Стратегии:</b>\n"
+        
+        for i, strategy in enumerate(profile.get_strategies()):
+            remaining = strategy.max_spend - strategy.current_spent
+            send_status = "🏠 Себе" if strategy.send_to_self else f"📢 {strategy.target_channel_id}"
+            text += f"<b>Стратегия {i + 1}</b> (Приоритет: {strategy.priority})\n"
+            text += f"  💰 Диапазон: {strategy.min_price}-{strategy.max_price} ⭐\n"
+            text += f"  💳 Лимит: {strategy.max_spend} ⭐\n"
+            text += f"  📊 Потрачено: {strategy.current_spent} ⭐\n"
+            text += f"  🔋 Остается: {remaining} ⭐\n"
+            text += f"  📤 Отправка: {send_status}\n\n"
+        
+        # Убираем лишний перенос строки в конце, если он есть
+        text = text.strip()
+        
+        if callback.message and not isinstance(callback.message, InaccessibleMessage):
+            try:
+                await callback.message.edit_text(
+                    text,
+                    reply_markup=create_profile_menu_keyboard(session_name, profile_name, config_manager),
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                logger.error(f"Ошибка при показе меню профиля: {e}")
+
+    @dp.callback_query(F.data.startswith("activate_profile|"))
+    async def activate_profile(callback: CallbackQuery):
+        """Активирует профиль"""
+        if not callback.data or not callback.from_user:
+            return
+        
+        # Формат: activate_profile|{session_name}|{profile_name}
+        parts = callback.data.split("|")
+        if len(parts) < 3:
+            return
+        
+        session_name = parts[1]
+        profile_name = parts[2]
+        
+        # Проверяем доступ
+        if not has_access_to_session(callback.from_user.username, session_name):
+            await callback.answer("❌ У вас нет доступа к этой сессии")
+            return
+        
+        try:
+            success = config_manager.set_active_profile(session_name, profile_name, callback.from_user.id)
+            
+            if success:
+                await callback.answer(f"✅ Профиль '{profile_name}' активирован")
+                
+                # Обновляем меню профиля
+                if callback.message and not isinstance(callback.message, InaccessibleMessage):
+                    # Создаем новый CallbackQuery для обновления меню
+                    new_callback_data = f"profile|{session_name}|{profile_name}"
+                    fake_callback = type(callback)(
+                        id=callback.id,
+                        from_user=callback.from_user,
+                        chat_instance=callback.chat_instance,
+                        data=new_callback_data,
+                        message=callback.message
+                    )
+                    await show_profile_menu(fake_callback)
+            else:
+                await callback.answer(f"❌ Не удалось активировать профиль '{profile_name}'")
+        
+        except Exception as e:
+            logger.error(f"Ошибка при активации профиля: {e}")
+            error_msg = str(e)[:50] + "..." if len(str(e)) > 50 else str(e)
+            await callback.answer(f"❌ Ошибка: {error_msg}")
+
+    @dp.callback_query(F.data.startswith("add_profile|"))
+    async def add_profile_prompt(callback: CallbackQuery):
+        """Запрашивает имя нового профиля"""
+        if not callback.data or not callback.from_user:
+            return
+        
+        # Формат: add_profile|{session_name}
+        session_name = callback.data.split("|")[1]
+        
+        # Проверяем доступ
+        if not has_access_to_session(callback.from_user.username, session_name):
+            await callback.answer("❌ У вас нет доступа к этой сессии")
+            return
+        
+        # Устанавливаем контекст
+        user_contexts[callback.from_user.id] = {
+            'waiting_for': 'profile_name',
+            'session_name': session_name
+        }
+        
+        text = f"📝 <b>Создание нового профиля</b>\n\n"
+        text += f"Введите имя нового профиля для сессии {session_name}:\n\n"
+        text += "ℹ️ Имя должно быть уникальным и содержать только буквы, цифры и символы '_', '-'"
+        
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(text="🔙 Отмена", callback_data=f"profiles|{session_name}"))
+        
+        if callback.message and not isinstance(callback.message, InaccessibleMessage):
+            try:
+                await callback.message.edit_text(
+                    text,
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                logger.error(f"Ошибка при запросе имени профиля: {e}")
+
+    @dp.callback_query(F.data.startswith("delete_profile_confirm|"))
+    async def delete_profile_confirm(callback: CallbackQuery):
+        """Подтверждение удаления профиля"""
+        if not callback.data or not callback.from_user:
+            return
+        
+        # Формат: delete_profile_confirm|{session_name}|{profile_name}
+        parts = callback.data.split("|")
+        if len(parts) < 3:
+            return
+        
+        session_name = parts[1]
+        profile_name = parts[2]
+        
+        # Проверяем доступ
+        if not has_access_to_session(callback.from_user.username, session_name):
+            await callback.answer("❌ У вас нет доступа к этой сессии")
+            return
+        
+        text = f"⚠️ <b>Подтверждение удаления</b>\n\n"
+        text += f"Вы действительно хотите удалить профиль '<b>{profile_name}</b>'?\n\n"
+        text += "❗ Это действие нельзя отменить!"
+        
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(text="✅ Да, удалить", callback_data=f"confirm_delete|{session_name}|{profile_name}"))
+        builder.add(InlineKeyboardButton(text="🔙 Отмена", callback_data=f"profile|{session_name}|{profile_name}"))
+        
+        if callback.message and not isinstance(callback.message, InaccessibleMessage):
+            try:
+                await callback.message.edit_text(
+                    text,
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                logger.error(f"Ошибка при подтверждении удаления: {e}")
+
+    @dp.callback_query(F.data.startswith("confirm_delete|"))
+    async def confirm_delete_profile(callback: CallbackQuery):
+        """Подтверждает удаление профиля"""
+        if not callback.data or not callback.from_user:
+            return
+        
+        # Формат: confirm_delete|{session_name}|{profile_name}
+        parts = callback.data.split("|")
+        if len(parts) < 3:
+            return
+        
+        session_name = parts[1]
+        profile_name = parts[2]
+        
+        # Проверяем доступ
+        if not has_access_to_session(callback.from_user.username, session_name):
+            await callback.answer("❌ У вас нет доступа к этой сессии")
+            return
+        
+        try:
+            success = config_manager.delete_profile(session_name, profile_name, callback.from_user.id)
+            
+            if success:
+                await callback.answer(f"✅ Профиль '{profile_name}' удален")
+                
+                # Создаем новый CallbackQuery для перехода к списку профилей
+                if callback.message and not isinstance(callback.message, InaccessibleMessage):
+                    new_callback_data = f"profiles|{session_name}"
+                    fake_callback = type(callback)(
+                        id=callback.id,
+                        from_user=callback.from_user,
+                        chat_instance=callback.chat_instance,
+                        data=new_callback_data,
+                        message=callback.message
+                    )
+                    await show_profiles(fake_callback)
+            else:
+                await callback.answer(f"❌ Не удалось удалить профиль '{profile_name}'")
+        
+        except Exception as e:
+            logger.error(f"Ошибка при удалении профиля: {e}")
+            error_msg = str(e)[:50] + "..." if len(str(e)) > 50 else str(e)
+            await callback.answer(f"❌ Ошибка: {error_msg}")
+
+    return {
+        'back_to_main': back_to_main,
+        'show_stats': show_stats,
+        'show_settings': show_settings,
+        'session_menu': session_menu,
+        'show_profiles': show_profiles,
+        'show_profile_menu': show_profile_menu,
+        'activate_profile': activate_profile,
+        'add_profile_prompt': add_profile_prompt,
+        'delete_profile_confirm': delete_profile_confirm,
+        'confirm_delete_profile': confirm_delete_profile
+    }

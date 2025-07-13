@@ -72,7 +72,7 @@ ENABLE_PERFORMANCE_TRACKING = True
 # Логировать ли подробную статистику времени каждые N покупок.
 # 0 - отключить периодическую статистику
 # N - показывать статистику каждые N покупок
-PERFORMANCE_LOG_INTERVAL = 5
+PERFORMANCE_LOG_INTERVAL = 1
 
 # Логировать ли общую статистику всех скупщиков каждые N минут.
 # 0 - отключить общее логирование
@@ -88,7 +88,30 @@ KNOWN_GIFTS_FILE_NAME = "known_gifts.json"
 # Токен бота для управления конфигурацией (получить у @BotFather)
 MANAGEMENT_BOT_TOKEN = "8022170559:AAHI7dCW5DBFJpYy558akUPPQWqEqvR7nY8"  # Замените на токен вашего бота
 
-# ID администратора, который может управлять ботом
+# Вайтлист пользователей, которые могут управлять ботом (по username без @)
+# Добавьте сюда юзернеймы всех пользователей, которым нужен доступ
+ADMIN_USERNAMES = [
+    "mrhephaestus",     # разраб
+    "astalavis7",
+    "ONL1N9",
+    "paul_durov_friend",
+    "isell888",
+    "Tr4ster1",
+    "cryptohostage",
+    "DaynGnom",
+    "vovn777",
+    "Eltonioo",
+    "brabusxl",
+    "POLERY_YP",
+    "griezmann_leyenda",
+    "ShavelDurov",
+    "ReroReroRero7",
+    "markycia",
+    "alexxand_er",
+    "FormulaPobedi"
+]
+
+# ID главного администратора (для совместимости)
 ADMIN_USER_ID = 758312339  # Замените на ваш Telegram ID
 
 # --- Настройки прокси (если нужно) ---
@@ -98,18 +121,18 @@ ADMIN_USER_ID = 758312339  # Замените на ваш Telegram ID
 PROXY_URL = None  # Оставьте None для прямого соединения
 
 # --- Настройки прав доступа к ботам ---
-# Соответствие сессий покупателей и их владельцев (Telegram ID)
+# Соответствие сессий покупателей и их владельцев (по username без @)
 # Каждый владелец может управлять только своими ботами
 BUYER_OWNERS = {
-    "buyer_andrei": 111111111,      # ID пользователя Андрей
-    "buyer_oleg": 222222222,        # ID пользователя Олег  
-    "buyer_masha": 333333333,       # ID пользователя Маша
-    "buyer_glasha": 444444444,      # ID пользователя Глаша
-    "buyer_ivan": 555555555,        # ID пользователя Иван
-    "buyer_graf_main": 758312339,   # ID главного админа
-    "stats_buyer_andrei": 111111111, # Дополнительный бот Андрея
+    "buyer_andrei": "andrei_username",      # Username пользователя Андрей
+    "buyer_oleg": "oleg_username",          # Username пользователя Олег  
+    "buyer_masha": "masha_username",        # Username пользователя Маша
+    "buyer_glasha": "glasha_username",      # Username пользователя Глаша
+    "buyer_ivan": "ivan_username",          # Username пользователя Иван
+    "buyer_graf_main": "mrhephaestus",      # Username главного админа
+    "stats_buyer_andrei": "andrei_username", # Дополнительный бот Андрея
     # Добавьте остальные боты и их владельцев здесь
 }
 
-# Дополнительные админы, которые могут управлять всеми ботами
-SUPER_ADMINS = [758312339]  # Список ID суперадминов
+# Дополнительные админы, которые могут управлять всеми ботами (по username без @)
+SUPER_ADMINS = ["mrhephaestus"]  # Список username'ов суперадминов
