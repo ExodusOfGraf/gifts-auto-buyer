@@ -14,7 +14,7 @@ API_HASH = "3c19b613858238106fbd014823804d8b"  # Замените на ваш р
 # Список имен файлов сессий для сканеров (аккаунты, которые будут только проверять наличие новых подарков)
 # Рекомендуется использовать 2-3 аккаунта, чтобы распределить нагрузку.
 SCANNER_SESSIONS = [
-    "scan_1",
+    "alex_goodscan_2",
     "scan_2",
     "scan_3"
 ]
@@ -23,8 +23,16 @@ SCANNER_SESSIONS = [
 # Это основные аккаунты, на которых есть "звёзды".
 # Можно добавить сколько угодно.
 BUYER_SESSIONS = [
-    "buyer_graf_main",
+    "buyer_FormulaPobedi",
+    "buyer_mewoem",
+    "buyer_ONL1N9",
+    "buyer_markycia",
+    "buyer_alex",
+    "buyer_graf",  
 ]
+    
+    #
+
 
 # --- Каналы и интервалы ---
 # ID служебного канала, куда сканеры будут постить информацию о новых гифтах.
@@ -46,7 +54,7 @@ CHECK_INTERVAL_SECONDS = 2
 # Задержка между покупками одного пользователя (в секундах).
 # После каждой успешной покупки аккаунт будет ждать это время перед следующей.
 # 0.3 секунды (300 миллисекунд) - хороший старт, чтобы избежать FloodWait.
-SLEEP_AFTER_BUY_SECONDS = 0.3
+SLEEP_AFTER_BUY_SECONDS = 0.2
 
 # --- Настройки сканера ---
 # Максимальное количество подарков для отправки в канал за один раз.
@@ -89,26 +97,10 @@ KNOWN_GIFTS_FILE_NAME = "known_gifts.json"
 MANAGEMENT_BOT_TOKEN = "8022170559:AAHI7dCW5DBFJpYy558akUPPQWqEqvR7nY8"  # Замените на токен вашего бота
 
 # Вайтлист пользователей, которые могут управлять ботом (по username без @)
-# Добавьте сюда юзернеймы всех пользователей, которым нужен доступ
+# ВНИМАНИЕ: Пользователи в этом списке имеют доступ КО ВСЕМ ботам!
+# Добавляйте сюда только настоящих администраторов системы
 ADMIN_USERNAMES = [
-    "mrhephaestus",     # разраб
-    "astalavis7",
-    "ONL1N9",
-    "paul_durov_friend",
-    "isell888",
-    "Tr4ster1",
-    "cryptohostage",
-    "DaynGnom",
-    "vovn777",
-    "Eltonioo",
-    "brabusxl",
-    "POLERY_YP",
-    "griezmann_leyenda",
-    "ShavelDurov",
-    "ReroReroRero7",
-    "markycia",
-    "alexxand_er",
-    "FormulaPobedi"
+    "mrhephaestus",     # разраб - полный доступ к всем ботам
 ]
 
 # ID главного администратора (для совместимости)
@@ -121,18 +113,36 @@ ADMIN_USER_ID = 758312339  # Замените на ваш Telegram ID
 PROXY_URL = None  # Оставьте None для прямого соединения
 
 # --- Настройки прав доступа к ботам ---
+
+# Список всех пользователей, которые могут войти в бота управления (по username без @)
+# Эти пользователи смогут управлять только своими ботами (указанными в BUYER_OWNERS)
+ALLOWED_USERS = [
+    "FormulaPobedi",
+    "alexxand_er",        
+    "ONL1N9",       
+    "markycia",
+    "paul_durov_friend",
+    "isell888",
+    "Tr4ster1",
+    "cryptohostage",
+    "DaynGnom",
+    "vovn777",
+    "Eltonioo",
+    "brabusxl",
+    "POLERY_YP",
+    "griezmann_leyenda",
+    "ShavelDurov",
+    "ReroReroRero7",
+    "myazzdrikov",
+]
+
 # Соответствие сессий покупателей и их владельцев (по username без @)
 # Каждый владелец может управлять только своими ботами
 BUYER_OWNERS = {
-    "buyer_andrei": "andrei_username",      # Username пользователя Андрей
-    "buyer_oleg": "oleg_username",          # Username пользователя Олег  
-    "buyer_masha": "masha_username",        # Username пользователя Маша
-    "buyer_glasha": "glasha_username",      # Username пользователя Глаша
-    "buyer_ivan": "ivan_username",          # Username пользователя Иван
-    "buyer_graf_main": "mrhephaestus",      # Username главного админа
-    "stats_buyer_andrei": "andrei_username", # Дополнительный бот Андрея
-    # Добавьте остальные боты и их владельцев здесь
+    "buyer_FormulaPobedi": "FormulaPobedi",
+    "buyer_mewoem": "alexxand_er",        
+    "buyer_ONL1N9": "ONL1N9",       
+    "buyer_markycia": "markycia",   
+    "buyer_alex": "alexxand_er",
+    "buyer_graf": "mrhephaestus",
 }
-
-# Дополнительные админы, которые могут управлять всеми ботами (по username без @)
-SUPER_ADMINS = ["mrhephaestus"]  # Список username'ов суперадминов

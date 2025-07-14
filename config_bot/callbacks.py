@@ -25,6 +25,7 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
     @dp.callback_query(F.data == "back_to_main")
     async def back_to_main(callback: CallbackQuery):
         """Возврат к главному меню"""
+        logger.info(f"🔍 back_to_main: получен callback от пользователя {callback.from_user.username if callback.from_user else 'None'}")
         await callback.answer()  # Отвечаем на callback сразу
         
         if callback.message and not isinstance(callback.message, InaccessibleMessage):
@@ -42,6 +43,7 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
     @dp.callback_query(F.data == "stats")
     async def show_stats(callback: CallbackQuery):
         """Показывает общую статистику"""
+        logger.info(f"🔍 show_stats: получен callback от пользователя {callback.from_user.username if callback.from_user else 'None'}")
         await callback.answer()  # Отвечаем на callback сразу
         
         if not callback.from_user:
@@ -75,6 +77,7 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
     @dp.callback_query(F.data == "settings")
     async def show_settings(callback: CallbackQuery):
         """Показывает настройки"""
+        logger.info(f"🔍 show_settings: получен callback от пользователя {callback.from_user.username if callback.from_user else 'None'}")
         await callback.answer()  # Отвечаем на callback сразу
         
         if not callback.from_user:
@@ -99,21 +102,34 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
     @dp.callback_query(F.data.startswith("session_"))
     async def session_menu(callback: CallbackQuery):
         """Меню для конкретной сессии"""
+        logger.info(f"🔍 session_menu: получен callback: data='{callback.data}', user='{callback.from_user.username if callback.from_user else 'None'}'")
+        
         await callback.answer()  # Отвечаем на callback сразу
         
+        logger.info(f"session_menu вызван: data={callback.data}, user={callback.from_user.username if callback.from_user else 'None'}")
+        
         if not callback.data or not callback.from_user:
+            logger.error("Отсутствуют callback.data или callback.from_user")
             return
         
         session_name = callback.data.split("_", 1)[1]
+        logger.info(f"Извлечено имя сессии: {session_name}")
         
         # Проверяем доступ
-        if not has_access_to_session(callback.from_user.username, session_name):
+        has_access = has_access_to_session(callback.from_user.username, session_name)
+        logger.info(f"Проверка доступа для {callback.from_user.username} к сессии {session_name}: {has_access}")
+        
+        if not has_access:
+            logger.warning(f"Пользователь {callback.from_user.username} не имеет доступа к сессии {session_name}")
             await callback.answer("❌ У вас нет доступа к этой сессии")
             return
         
         # НЕ создаем конфигурацию, просто получаем существующую
         config = config_manager.get_config(session_name)
+        logger.info(f"Конфигурация для сессии {session_name}: {'найдена' if config else 'не найдена'}")
+        
         if not config:
+            logger.warning(f"Конфигурация для сессии {session_name} не найдена")
             await callback.answer("❌ Конфигурация не найдена. Создайте конфигурацию через настройки профилей.")
             return
         
@@ -125,6 +141,8 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
         text += f"Активный профиль: <b>{config.active_profile}</b>\n\n"
         text += "Выберите действие:"
         
+        logger.info(f"Попытка отправить сообщение с текстом: {text[:50]}...")
+        
         if callback.message and not isinstance(callback.message, InaccessibleMessage):
             try:
                 await callback.message.edit_text(
@@ -132,8 +150,11 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
                     reply_markup=create_session_menu_keyboard(session_name, config_manager),
                     parse_mode="HTML"
                 )
+                logger.info(f"Успешно показано меню для сессии {session_name}")
             except Exception as e:
-                logger.error(f"Ошибка при показе меню сессии: {e}")
+                logger.error(f"Ошибка при показе меню сессии {session_name}: {e}")
+        else:
+            logger.error("callback.message отсутствует или недоступно")
 
     @dp.callback_query(F.data.startswith("profiles|"))
     async def show_profiles(callback: CallbackQuery):

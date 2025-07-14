@@ -19,7 +19,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.client.session.aiohttp import AiohttpSession
 
 from buyers.buyer_config import BuyerConfigManager, BuyerConfig, BuyingStrategy, BuyingProfile
-from app.config import BUYER_SESSIONS, MANAGEMENT_BOT_TOKEN, ADMIN_USER_ID, PROXY_URL, BUYER_OWNERS, SUPER_ADMINS, ADMIN_USERNAMES
+from app.config import BUYER_SESSIONS, MANAGEMENT_BOT_TOKEN, ADMIN_USER_ID, PROXY_URL, BUYER_OWNERS, ADMIN_USERNAMES, ALLOWED_USERS
 
 # Импорты модулей бота
 from .keyboards import create_main_keyboard
@@ -52,6 +52,17 @@ config_manager = BuyerConfigManager("data/buyer_configs.json")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Инициализируем дефолтные конфигурации для всех ботов-скупщиков
+def init_default_configs():
+    """Создает дефолтные конфигурации для всех ботов-скупщиков, если их нет"""
+    for session_name in BUYER_SESSIONS:
+        if not config_manager.get_config(session_name):
+            logger.info(f"Создание дефолтной конфигурации для {session_name}")
+            config_manager.create_default_config(session_name, owner_id=0)
+
+# Инициализируем конфигурации при запуске
+init_default_configs()
+
 # Глобальные переменные для хранения контекста пользователей
 user_contexts = {}
 
@@ -64,7 +75,26 @@ def is_admin(user_id: Optional[int] = None, username: Optional[str] = None) -> b
         return True
     
     # Проверяем по user_id (совместимость)
-    if user_id and (user_id == ADMIN_USER_ID or user_id in SUPER_ADMINS):
+    if user_id and user_id == ADMIN_USER_ID:
+        return True
+    
+    return False
+
+def has_bot_access(username: Optional[str] = None) -> bool:
+    """Проверяет, может ли пользователь входить в бота"""
+    if not username:
+        return False
+    
+    # Админы имеют доступ
+    if username in ADMIN_USERNAMES:
+        return True
+    
+    # Обычные пользователи из списка разрешенных
+    if username in ALLOWED_USERS:
+        return True
+    
+    # Пользователи, у которых есть хотя бы один бот
+    if any(owner == username for owner in BUYER_OWNERS.values()):
         return True
     
     return False
@@ -74,11 +104,7 @@ def has_access_to_session(username: Optional[str] = None, session_name: Optional
     if not session_name or not username:
         return False
         
-    # Суперадмины имеют доступ ко всем сессиям
-    if username in SUPER_ADMINS:
-        return True
-    
-    # Админы из вайтлиста имеют доступ ко всем сессиям
+    # Админы имеют доступ ко всем сессиям
     if username in ADMIN_USERNAMES:
         return True
     
@@ -93,8 +119,8 @@ def get_user_sessions(username: Optional[str] = None) -> list:
     if not username:
         return []
         
-    # Суперадмины и админы из вайтлиста имеют доступ ко всем сессиям
-    if username in SUPER_ADMINS or username in ADMIN_USERNAMES:
+    # Админы имеют доступ ко всем сессиям
+    if username in ADMIN_USERNAMES:
         return BUYER_SESSIONS
     
     # Проверяем права по username
@@ -114,10 +140,15 @@ def check_admin_access(user) -> bool:
     return is_admin(user_id=user.id, username=user.username)
 
 
+def check_bot_access(user) -> bool:
+    """Проверяет общий доступ к боту"""
+    return has_bot_access(user.username)
+
+
 @dp.message(Command("start"))
 async def start_command(message: Message):
     """Обработчик команды /start"""
-    if not message.from_user or not check_admin_access(message.from_user):
+    if not message.from_user or not check_bot_access(message.from_user):
         await message.answer("❌ У вас нет прав доступа к этому боту")
         return
     

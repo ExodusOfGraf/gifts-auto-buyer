@@ -273,12 +273,8 @@ class BuyerConfigManager:
         """Проверяет, имеет ли пользователь доступ к настройкам сессии"""
         # Импортируем здесь, чтобы избежать циклических импортов
         try:
-            from app.config import SUPER_ADMINS, BUYER_OWNERS
-            
-            # Суперадмины имеют доступ ко всем сессиям
-            if user_id in SUPER_ADMINS:
-                return True
-            
+            from app.config import BUYER_OWNERS
+                        
             # Проверяем права владельца по BUYER_OWNERS
             if BUYER_OWNERS.get(session_name) == user_id:
                 return True
