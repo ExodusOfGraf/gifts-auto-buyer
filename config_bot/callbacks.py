@@ -77,7 +77,7 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
     @dp.callback_query(F.data == "settings")
     async def show_settings(callback: CallbackQuery):
         """Показывает настройки"""
-        logger.info(f"🔍 show_settings: получен callback от пользователя {callback.from_user.username if callback.from_user else 'None'}")
+        #logger.info(f"🔍 show_settings: получен callback от пользователя {callback.from_user.username if callback.from_user else 'None'}")
         await callback.answer()  # Отвечаем на callback сразу
         
         if not callback.from_user:
@@ -150,7 +150,7 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
                     reply_markup=create_session_menu_keyboard(session_name, config_manager),
                     parse_mode="HTML"
                 )
-                logger.info(f"Успешно показано меню для сессии {session_name}")
+                #logger.info(f"Успешно показано меню для сессии {session_name}")
             except Exception as e:
                 logger.error(f"Ошибка при показе меню сессии {session_name}: {e}")
         else:

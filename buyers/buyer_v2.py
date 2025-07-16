@@ -220,6 +220,18 @@ async def execute_purchase_loop(
                 elif "STARGIFT_PREMIUM_NEEDED" in str(e):
                     log.error(f"Ошибка: для отправки этого подарка нужен Premium. Время попытки: {purchase_time:.3f}с")
                     break
+                elif "CHAT_WRITE_FORBIDDEN" in str(e):
+                    log.error(f"Ошибка: нет прав для отправки в канал {chat_id}. Проверьте доступ аккаунта к каналу. Время попытки: {purchase_time:.3f}с")
+                    break
+                elif "CHAT_ADMIN_REQUIRED" in str(e):
+                    log.error(f"Ошибка: нужны права администратора в канале {chat_id}. Время попытки: {purchase_time:.3f}с")
+                    break
+                elif "USER_NOT_PARTICIPANT" in str(e):
+                    log.error(f"Ошибка: аккаунт не добавлен в канал {chat_id}. Добавьте аккаунт в канал. Время попытки: {purchase_time:.3f}с")
+                    break
+                elif "PEER_ID_INVALID" in str(e):
+                    log.error(f"Ошибка: неверный ID канала {chat_id}. Проверьте правильность ID. Время попытки: {purchase_time:.3f}с")
+                    break
                 else:
                     log.error(f"Ошибка API при покупке: {e}. Время попытки: {purchase_time:.3f}с")
                     break

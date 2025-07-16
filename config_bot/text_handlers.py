@@ -217,6 +217,17 @@ async def handle_strategy_channel_id_input(message: Message, context: dict, conf
         await message.answer("❌ ID канала должен быть числом. Пример: -1234567890")
         return
 
+    # Проверяем формат ID канала
+    if channel_id > 0:
+        await message.answer(
+            "❌ ID канала должен быть отрицательным числом!\n\n"
+            "• Для приватных каналов: начинается с -100 (например: -1001234567890)\n"
+            "• Для групп: начинается с - (например: -1234567890)\n\n"
+            "💡 Узнать правильный ID можно отправив сообщение из канала в бота @userinfobot"
+        )
+        return
+
+
     config = config_manager.get_config(session_name)
     if not config or profile_name not in config.profiles:
         await message.answer("❌ Профиль не найден")
@@ -228,7 +239,11 @@ async def handle_strategy_channel_id_input(message: Message, context: dict, conf
     strategies[strategy_num - 1].target_channel_id = channel_id
     config_manager.set_config(session_name, config)
 
-    await message.answer(f"✅ Стратегия {strategy_num}: канал установлен на <code>{channel_id}</code>.", parse_mode="HTML")
+    await message.answer(
+        f"✅ Стратегия {strategy_num}: канал установлен на <code>{channel_id}</code>.\n\n"
+        f"⚠️ <b>Важно:</b> Убедитесь, что аккаунт покупателя добавлен в этот канал и может отправлять сообщения!",
+        parse_mode="HTML"
+    )
 
     if user_id in user_contexts:
         del user_contexts[user_id]

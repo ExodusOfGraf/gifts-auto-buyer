@@ -30,7 +30,11 @@ BUYER_SESSIONS = [
     "buyer_mewoem",
     "buyer_ONL1N9",
     "buyer_markycia",
+    "buyer_trahnusuka",
+
 ]
+
+#     "buyer_karinalovele" авторизовать не получилось
 
 # --- Каналы и интервалы ---
 # ID служебного канала, куда сканеры будут постить информацию о новых гифтах.
@@ -110,7 +114,7 @@ PROXY_URL = None  # Оставьте None для прямого соединен
 # Список всех пользователей, которые могут войти в бота управления (по username без @)
 # Эти пользователи смогут управлять только своими ботами (указанными в BUYER_OWNERS)
 ALLOWED_USERS = [
-    "FormulaPobedi", #
+    "FormulaPobedi", 
     "astalavis7",
     "vovn777",
     "dleo_26",
@@ -130,6 +134,7 @@ ALLOWED_USERS = [
     "Eltonioo",
     "nigggaaaa77",
     "alexxand_er",
+    "onspam",
 ]
 
 # Соответствие сессий покупателей и их владельцев
@@ -138,4 +143,6 @@ BUYER_OWNERS = {
     "buyer_mewoem": "alexxand_er",        
     "buyer_ONL1N9": "ONL1N9",       
     "buyer_markycia": "markycia",
+    "buyer_trahnusuka": "wofur",
+
 }

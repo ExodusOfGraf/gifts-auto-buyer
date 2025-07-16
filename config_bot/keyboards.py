@@ -75,7 +75,7 @@ def create_profile_menu_keyboard(session_name: str, profile_name: str, config_ma
         for i in range(4):
             builder.row(
                 InlineKeyboardButton(text=f"⚙️ Параметры {i+1}", callback_data=f"edit_strategy_params|{session_name}|{profile_name}|{i+1}"),
-                InlineKeyboardButton(text=f"� Отправка {i+1}", callback_data=f"edit_strategy_send|{session_name}|{profile_name}|{i+1}")
+                InlineKeyboardButton(text=f"📤 Отправка {i+1}", callback_data=f"edit_strategy_send|{session_name}|{profile_name}|{i+1}")
             )
 
         # Кнопки управления профилем
