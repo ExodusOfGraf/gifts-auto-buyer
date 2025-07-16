@@ -6,60 +6,55 @@ from datetime import datetime
 
 @dataclass
 class BuyingProfile:
-    """Профиль закупки - набор из 4 стратегий с приоритетами"""
-    name: str  # Название профиля
-    strategy_1: 'BuyingStrategy'  # Приоритет 1 (самый высокий)
-    strategy_2: 'BuyingStrategy'  # Приоритет 2  
-    strategy_3: 'BuyingStrategy'  # Приоритет 3
-    strategy_4: 'BuyingStrategy'  # Приоритет 4 (самый низкий)
+    """Профиль закупки - набор из 4 стратегий"""
+    name: str
+    strategy_1: 'BuyingStrategy'
+    strategy_2: 'BuyingStrategy'
+    strategy_3: 'BuyingStrategy'
+    strategy_4: 'BuyingStrategy'
     
     def get_strategies(self) -> List['BuyingStrategy']:
-        """Возвращает все стратегии профиля отсортированные по приоритету"""
         return [self.strategy_1, self.strategy_2, self.strategy_3, self.strategy_4]
     
     def get_best_strategy(self, price: int) -> Optional['BuyingStrategy']:
-        """Возвращает лучшую стратегию для покупки по цене (с учетом приоритета)"""
         strategies = self.get_strategies()
-        for strategy in strategies:  # Уже отсортированы по приоритету
+        for strategy in strategies:
             if strategy.can_buy(price):
                 return strategy
         return None
 
 @dataclass
 class BuyingStrategy:
-    """Стратегия покупки для определенного диапазона цен"""
-    min_price: int  # Минимальная цена подарка
-    max_price: int  # Максимальная цена подарка
-    max_spend: int  # Максимум звезд для трат на этой стратегии
-    priority: int   # Приоритет (1 - самый высокий)
-    current_spent: int = 0  # Текущая потраченная сумма
-    send_to_self: bool = True  # True - отправлять себе, False - в канал
-    target_channel_id: int = 0  # ID канала для отправки (если send_to_self = False)
+    """Стратегия покупки для диапазона цен"""
+    min_price: int
+    max_price: int
+    max_spend: int
+    priority: int
+    current_spent: int = 0
+    send_to_self: bool = True
+    target_channel_id: int = 0
     
     def can_buy(self, price: int) -> bool:
-        """Проверяет, можно ли купить подарок по этой стратегии"""
         return (self.min_price <= price <= self.max_price and 
                 self.current_spent + price <= self.max_spend)
     
     def add_purchase(self, price: int):
-        """Добавляет покупку к текущим тратам"""
         self.current_spent += price
     
     def reset_spent(self):
-        """Сбрасывает текущие траты"""
         self.current_spent = 0
 
 @dataclass
 class BuyerConfig:
-    """Конфигурация для одного покупателя"""
+    """Конфигурация покупателя"""
     session_name: str
-    strategies: List[BuyingStrategy]  # Оставляем для обратной совместимости
-    profiles: Dict[str, BuyingProfile]  # Новые профили закупки
-    active_profile: str  # Название активного профиля
+    strategies: List[BuyingStrategy]
+    profiles: Dict[str, BuyingProfile]
+    active_profile: str
     enabled: bool = True
-    auto_reset_daily: bool = True  # Автоматически сбрасывать траты каждый день
-    last_reset: str = ""  # Дата последнего сброса
-    owner_id: int = 0  # ID владельца бота (для прав доступа)
+    auto_reset_daily: bool = True
+    last_reset: str = ""
+    owner_id: int = 0
     
     def get_active_profile(self) -> Optional[BuyingProfile]:
         """Возвращает активный профиль"""

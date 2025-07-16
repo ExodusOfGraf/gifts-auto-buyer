@@ -8,7 +8,6 @@ from typing import Optional
 from dataclasses import dataclass, field, asdict
 from collections import defaultdict
 
-# Добавляем родительскую папку в путь для импорта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pyrogram import Client, filters
@@ -28,7 +27,7 @@ logging.basicConfig(
 
 @dataclass
 class PurchaseStats:
-    """Статистика времени покупок с детальным анализом"""
+    """Статистика времени покупок"""
     total_purchases: int = 0
     successful_purchases: int = 0
     failed_purchases: int = 0
@@ -36,9 +35,8 @@ class PurchaseStats:
     min_time: float = float('inf')
     max_time: float = 0.0
     purchase_times: list = field(default_factory=list)
-    # Новые метрики для детального анализа
-    reaction_times: list = field(default_factory=list)  # Время реакции на сообщение
-    api_call_times: list = field(default_factory=list)  # Время API вызовов
+    reaction_times: list = field(default_factory=list)
+    api_call_times: list = field(default_factory=list)
     total_reaction_time: float = 0.0
     total_api_time: float = 0.0
     
@@ -55,52 +53,45 @@ class PurchaseStats:
         self.max_time = max(self.max_time, duration)
         self.purchase_times.append(duration)
         
-        # Ограничиваем историю последними 100 покупками
+        # Ограничиваем историю
         if len(self.purchase_times) > 100:
             self.purchase_times.pop(0)
     
     def add_reaction_time(self, duration: float):
-        """Добавляет время реакции на сообщение"""
         self.total_reaction_time += duration
         self.reaction_times.append(duration)
         if len(self.reaction_times) > 100:
             self.reaction_times.pop(0)
     
     def add_api_time(self, duration: float):
-        """Добавляет время API вызова"""
         self.total_api_time += duration
         self.api_call_times.append(duration)
         if len(self.api_call_times) > 100:
             self.api_call_times.pop(0)
     
     def get_average_time(self) -> float:
-        """Возвращает среднее время покупки"""
         return self.total_time / max(1, self.total_purchases)
     
     def get_recent_average(self, count: int = 10) -> float:
-        """Возвращает среднее время последних N покупок"""
         recent = self.purchase_times[-count:] if self.purchase_times else []
         return sum(recent) / max(1, len(recent))
     
     def get_average_reaction_time(self) -> float:
-        """Возвращает среднее время реакции"""
         return (self.total_reaction_time / max(1, len(self.reaction_times))) if self.reaction_times else 0.0
     
     def get_average_api_time(self) -> float:
-        """Возвращает среднее время API вызовов"""
         return (self.total_api_time / max(1, len(self.api_call_times))) if self.api_call_times else 0.0
 
-# Глобальный менеджер конфигураций и статистики
+# Глобальные переменные
 config_manager: Optional[BuyerConfigManager] = None
 performance_stats: dict[str, PurchaseStats] = defaultdict(PurchaseStats)
 
 def parse_gift_data(text: str) -> dict | None:
+    """Парсит данные подарка из сообщения"""
     try:
-        # Ищем начало блока с данными для бота
         if "NEW_GIFT" not in text:
             return None
         
-        # Берем только ту часть текста, что идет после NEW_GIFT
         data_block = text.split("NEW_GIFT")[1]
         lines = data_block.strip().split('\n')
         
@@ -122,10 +113,7 @@ async def get_purchase_parameters(
     price: int, 
     manager: BuyerConfigManager
 ) -> tuple[Optional[BuyerConfig], Optional[BuyingStrategy]]:
-    """
-    Проверяет конфиг, статус бота, сбрасывает дневные лимиты и выбирает стратегию.
-    Возвращает кортеж (конфигурация, стратегия) или (None, None) если покупка невозможна.
-    """
+    """Проверяет конфиг и выбирает стратегию покупки"""
     log = logging.getLogger(client.name)
     
     config = manager.get_config(client.name)
@@ -159,12 +147,8 @@ async def execute_purchase_loop(
     strategy: BuyingStrategy, 
     manager: BuyerConfigManager
 ):
-    """
-    Выполняет цикл покупки подарков на основе выбранной стратегии.
-    """
+    """Выполняет цикл покупки подарков"""
     log = logging.getLogger(client.name)
-    
-    # Начинаем отслеживание времени
     start_time = time.time()
     
     try:
@@ -173,7 +157,7 @@ async def execute_purchase_loop(
             log.warning(f"Недостаточно средств. Баланс: {balance} ⭐, Цена: {price} ⭐")
             return
 
-        # Определяем куда отправлять подарки на основе настроек стратегии
+        # Определяем место отправки
         if strategy.send_to_self:
             chat_id = "me"
             destination_info = "профиль"
@@ -181,7 +165,7 @@ async def execute_purchase_loop(
             chat_id = strategy.target_channel_id
             destination_info = f"канал {chat_id}"
 
-        # Вычисляем, сколько подарков можем купить по стратегии
+        # Вычисляем количество подарков для покупки
         if price <= 0:
             log.warning(f"Цена подарка некорректна ({price} ⭐). Покупка отменена.")
             return
@@ -207,7 +191,6 @@ async def execute_purchase_loop(
             try:
                 log.info(f"Попытка покупки #{i + 1}/{quantity_to_buy}...")
                 
-                # API вызов - отслеживаем время
                 api_start = time.time()
                 await client.send_gift(chat_id=chat_id, gift_id=gift_id)
                 api_time = time.time() - api_start
@@ -219,7 +202,6 @@ async def execute_purchase_loop(
                 purchase_time = time.time() - purchase_start
                 log.info(f"✅ УСПЕХ! Покупка #{i + 1} гифта ID:{gift_id} отправлен в {destination_info}! Время: {purchase_time:.3f}с (API: {api_time:.3f}с)")
                 
-                # Записываем статистику времени покупки
                 if ENABLE_PERFORMANCE_TRACKING:
                     performance_stats[client.name].add_purchase(purchase_time, True)
                     performance_stats[client.name].add_api_time(api_time)
@@ -229,7 +211,6 @@ async def execute_purchase_loop(
             except RPCError as e:
                 purchase_time = time.time() - purchase_start
                 
-                # Записываем статистику неудачной покупки
                 if ENABLE_PERFORMANCE_TRACKING:
                     performance_stats[client.name].add_purchase(purchase_time, False)
                 
@@ -243,11 +224,10 @@ async def execute_purchase_loop(
                     log.error(f"Ошибка API при покупке: {e}. Время попытки: {purchase_time:.3f}с")
                     break
         
-        # Общее время обработки подарка
+        # Общее время обработки
         total_time = time.time() - start_time
         
         if successful_purchases > 0:
-            # Обновляем конфиг, чтобы получить актуальные данные о тратах
             updated_config = manager.get_config(client.name)
             if updated_config:
                 updated_strategy = updated_config.get_best_strategy(price)
@@ -255,12 +235,10 @@ async def execute_purchase_loop(
                     remaining = updated_strategy.max_spend - updated_strategy.current_spent
                     log.info(f"Успешно куплено {successful_purchases} подарков. Остаток по стратегии: {remaining} ⭐")
             
-            # Логируем общую статистику времени
             if ENABLE_PERFORMANCE_TRACKING:
                 stats = performance_stats[client.name]
                 log.info(f"⏱️ Общее время обработки: {total_time:.3f}с. Среднее время покупки: {stats.get_average_time():.3f}с")
                 
-                # Периодическая подробная статистика
                 if PERFORMANCE_LOG_INTERVAL > 0 and stats.total_purchases % PERFORMANCE_LOG_INTERVAL == 0:
                     log_performance_stats(client.name, stats)
         
@@ -273,10 +251,8 @@ async def execute_purchase_loop(
 
 
 async def gift_handler(client: Client, message):
-    """Обработчик новых подарков с поддержкой стратегий покупки"""
+    """Обработчик новых подарков"""
     log = logging.getLogger(client.name)
-    
-    # Начинаем отслеживание времени реакции
     reaction_start = time.time()
     
     log.info(f"🔔 Получено новое сообщение в целевом канале от {client.name}!")
@@ -297,7 +273,6 @@ async def gift_handler(client: Client, message):
     reaction_time = time.time() - reaction_start
     log.info(f"🎁 Обнаружен подарок ID:{gift_id}, цена:{price} ⭐. Время реакции: {reaction_time:.3f}с")
     
-    # Записываем время реакции
     if ENABLE_PERFORMANCE_TRACKING:
         performance_stats[client.name].add_reaction_time(reaction_time)
     
@@ -309,14 +284,12 @@ async def gift_handler(client: Client, message):
     else:
         log.info(f"❌ Не найдена подходящая стратегия или конфигурация отключена")
     
-    # Логируем общее время обработки сообщения
     total_processing_time = time.time() - reaction_start
     if ENABLE_PERFORMANCE_TRACKING:
         log.info(f"⏰ Общее время обработки сообщения: {total_processing_time:.3f}с")
 
-
 async def run_buyer(session_name: str, workdir: str):
-    """Запускает и поддерживает одного клиента-покупателя"""
+    """Запускает клиента-покупателя"""
     client = Client(session_name, api_id=API_ID, api_hash=API_HASH, workdir=workdir)
     client.add_handler(MessageHandler(gift_handler, filters=filters.chat(TARGET_CHANNEL_ID) & filters.text))
     
@@ -339,13 +312,6 @@ async def run_buyer(session_name: str, workdir: str):
             logger.info(f"⏱️ Система будет отслеживать: время реакции, время API вызовов, время покупок")
         else:
             logger.info("📊 Отслеживание производительности отключено")
-        
-        # Проверяем наличие TgCrypto для оптимальной производительности
-        try:
-            import tgcrypto
-            logger.info("🚀 TgCrypto установлен - максимальная скорость API!")
-        except ImportError:
-            logger.warning("⚠️ TgCrypto не установлен - API будет работать медленнее. Установите: pip install tgcrypto")
         
         # Ожидаем сообщения (запускаем бесконечный цикл)
         await asyncio.sleep(float('inf'))

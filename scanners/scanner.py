@@ -19,7 +19,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 def load_known_gift_ids(gifts_file_path: str) -> set[int]:
-    #Загружает ID известных гифтов из файла
+    """Загружает ID известных подарков"""
     if not os.path.exists(gifts_file_path):
         return set()
     try:
@@ -29,24 +29,22 @@ def load_known_gift_ids(gifts_file_path: str) -> set[int]:
         return set()
 
 def save_gift_ids(gift_ids: set[int], gifts_file_path: str):
-    #Сохраняет все актуальные ID гифтов в файл
+    """Сохраняет ID подарков в файл"""
     with open(gifts_file_path, "w", encoding="utf-8") as f:
         json.dump(list(gift_ids), f, ensure_ascii=False, indent=2)
 
 async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_path: str) -> set:
-    #Проверяет подарки с одного клиента и отправляет уведомления
+    """Проверяет подарки и отправляет уведомления"""
     log.info(f"Проверка с аккаунта '{client.name}'...")
     all_gifts = await client.get_available_gifts()
 
-    # Настраиваемая фильтрация подарков на основе конфигурации
+    # Фильтрация подарков
     if SCANNER_TEST_MODE:
-        # Режим тестирования: берем ВСЕ подарки
         rare_gifts = all_gifts
-        log.info(f"Режим тестирования: обрабатываем все подарки ({len(all_gifts)} шт.)")
+        log.info(f"Тест режим: все подарки ({len(all_gifts)} шт.)")
     else:
-        # Продакшен режим: только лимитированные подарки
         rare_gifts = [gift for gift in all_gifts if gift.is_limited]
-        log.info(f"Продакшен режим: обрабатываем только лимитированные подарки ({len(rare_gifts)} шт.)")
+        log.info(f"Только лимитированные подарки ({len(rare_gifts)} шт.)")
     
     current_rare_gift_ids = {gift.id for gift in rare_gifts}
     
@@ -194,14 +192,6 @@ async def main(workdir: str):
     try:
         await asyncio.gather(*[client.start() for client in clients])
         log.info(f"Все {len(clients)} сканера успешно запущены.")
-        
-        # Проверяем наличие TgCrypto для оптимальной производительности
-        try:
-            import tgcrypto
-            log.info("🚀 TgCrypto установлен - максимальная скорость API!")
-        except ImportError:
-            log.warning("⚠️ TgCrypto не установлен - API будет работать медленнее. Установите: pip install tgcrypto")
-        
         known_gift_ids = load_known_gift_ids(gifts_file_path)
         
         mode_text = "тестирования (все подарки)" if SCANNER_TEST_MODE else "продакшена (только лимитированные)"

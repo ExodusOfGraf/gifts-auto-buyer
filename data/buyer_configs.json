@@ -67,50 +67,12 @@
           "send_to_self": true,
           "target_channel_id": 0
         }
-      },
-      "test1": {
-        "strategy_1": {
-          "min_price": 200,
-          "max_price": 500,
-          "max_spend": 200,
-          "priority": 1,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_2": {
-          "min_price": 500,
-          "max_price": 999,
-          "max_spend": 3000,
-          "priority": 2,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_3": {
-          "min_price": 1000,
-          "max_price": 2000,
-          "max_spend": 2000,
-          "priority": 3,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_4": {
-          "min_price": 10,
-          "max_price": 15,
-          "max_spend": 30,
-          "priority": 4,
-          "current_spent": 15,
-          "send_to_self": true,
-          "target_channel_id": 0
-        }
       }
     },
-    "active_profile": "test1",
+    "active_profile": "default",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": "2025-07-14",
+    "last_reset": "2025-07-16",
     "owner_id": 0
   },
   "buyer_mewoem": {
@@ -181,50 +143,12 @@
           "send_to_self": true,
           "target_channel_id": 0
         }
-      },
-      "test2": {
-        "strategy_1": {
-          "min_price": 400,
-          "max_price": 500,
-          "max_spend": 500,
-          "priority": 1,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_2": {
-          "min_price": 500,
-          "max_price": 999,
-          "max_spend": 3000,
-          "priority": 2,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_3": {
-          "min_price": 1000,
-          "max_price": 2000,
-          "max_spend": 1500,
-          "priority": 3,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_4": {
-          "min_price": 10,
-          "max_price": 15,
-          "max_spend": 30,
-          "priority": 4,
-          "current_spent": 30,
-          "send_to_self": true,
-          "target_channel_id": 0
-        }
       }
     },
-    "active_profile": "test2",
+    "active_profile": "default",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": "2025-07-14",
+    "last_reset": "",
     "owner_id": 0
   },
   "buyer_ONL1N9": {
@@ -295,50 +219,12 @@
           "send_to_self": true,
           "target_channel_id": 0
         }
-      },
-      "test333": {
-        "strategy_1": {
-          "min_price": 3000,
-          "max_price": 4000,
-          "max_spend": 10000,
-          "priority": 1,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_2": {
-          "min_price": 500,
-          "max_price": 999,
-          "max_spend": 3000,
-          "priority": 2,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_3": {
-          "min_price": 300,
-          "max_price": 500,
-          "max_spend": 500,
-          "priority": 3,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_4": {
-          "min_price": 10,
-          "max_price": 15,
-          "max_spend": 30,
-          "priority": 4,
-          "current_spent": 30,
-          "send_to_self": true,
-          "target_channel_id": 0
-        }
       }
     },
-    "active_profile": "test333",
+    "active_profile": "default",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": "2025-07-14",
+    "last_reset": "",
     "owner_id": 0
   },
   "buyer_markycia": {
@@ -409,50 +295,12 @@
           "send_to_self": true,
           "target_channel_id": 0
         }
-      },
-      "test4": {
-        "strategy_1": {
-          "min_price": 1000,
-          "max_price": 10000,
-          "max_spend": 5000,
-          "priority": 1,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_2": {
-          "min_price": 500,
-          "max_price": 999,
-          "max_spend": 3000,
-          "priority": 2,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_3": {
-          "min_price": 3000,
-          "max_price": 4000,
-          "max_spend": 10000,
-          "priority": 3,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_4": {
-          "min_price": 10,
-          "max_price": 15,
-          "max_spend": 30,
-          "priority": 4,
-          "current_spent": 30,
-          "send_to_self": true,
-          "target_channel_id": 0
-        }
       }
     },
-    "active_profile": "test4",
+    "active_profile": "default",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": "2025-07-14",
+    "last_reset": "",
     "owner_id": 0
   },
   "buyer_alex": {
@@ -523,164 +371,12 @@
           "send_to_self": true,
           "target_channel_id": 0
         }
-      },
-      "test5": {
-        "strategy_1": {
-          "min_price": 1000,
-          "max_price": 10000,
-          "max_spend": 5000,
-          "priority": 1,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_2": {
-          "min_price": 2000,
-          "max_price": 3000,
-          "max_spend": 3000,
-          "priority": 2,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_3": {
-          "min_price": 2000,
-          "max_price": 3000,
-          "max_spend": 3000,
-          "priority": 3,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_4": {
-          "min_price": 10,
-          "max_price": 15,
-          "max_spend": 30,
-          "priority": 4,
-          "current_spent": 30,
-          "send_to_self": true,
-          "target_channel_id": 0
-        }
       }
     },
-    "active_profile": "test5",
+    "active_profile": "default",
     "enabled": true,
     "auto_reset_daily": true,
-    "last_reset": "2025-07-14",
-    "owner_id": 0
-  },
-  "buyer_graf": {
-    "strategies": [
-      {
-        "min_price": 1000,
-        "max_price": 10000,
-        "max_spend": 5000,
-        "priority": 1,
-        "current_spent": 0,
-        "send_to_self": true,
-        "target_channel_id": 0
-      },
-      {
-        "min_price": 100,
-        "max_price": 999,
-        "max_spend": 2000,
-        "priority": 2,
-        "current_spent": 0,
-        "send_to_self": true,
-        "target_channel_id": 0
-      },
-      {
-        "min_price": 1,
-        "max_price": 99,
-        "max_spend": 1000,
-        "priority": 3,
-        "current_spent": 0,
-        "send_to_self": true,
-        "target_channel_id": 0
-      }
-    ],
-    "profiles": {
-      "default": {
-        "strategy_1": {
-          "min_price": 1000,
-          "max_price": 10000,
-          "max_spend": 5000,
-          "priority": 1,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_2": {
-          "min_price": 500,
-          "max_price": 999,
-          "max_spend": 3000,
-          "priority": 2,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_3": {
-          "min_price": 100,
-          "max_price": 499,
-          "max_spend": 2000,
-          "priority": 3,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_4": {
-          "min_price": 1,
-          "max_price": 99,
-          "max_spend": 1000,
-          "priority": 4,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        }
-      },
-      "test6": {
-        "strategy_1": {
-          "min_price": 2000,
-          "max_price": 3000,
-          "max_spend": 3000,
-          "priority": 1,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_2": {
-          "min_price": 2000,
-          "max_price": 3000,
-          "max_spend": 3000,
-          "priority": 2,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_3": {
-          "min_price": 2000,
-          "max_price": 3000,
-          "max_spend": 3000,
-          "priority": 3,
-          "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
-        },
-        "strategy_4": {
-          "min_price": 10,
-          "max_price": 15,
-          "max_spend": 30,
-          "priority": 4,
-          "current_spent": 15,
-          "send_to_self": true,
-          "target_channel_id": 0
-        }
-      }
-    },
-    "active_profile": "test6",
-    "enabled": true,
-    "auto_reset_daily": true,
-    "last_reset": "2025-07-14",
+    "last_reset": "",
     "owner_id": 0
   }
 }

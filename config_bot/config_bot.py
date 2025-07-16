@@ -1,6 +1,4 @@
-"""
-Основной модуль бота управления конфигурацией покупателей подарков
-"""
+"""Бот управления конфигурацией покупателей"""
 
 import asyncio
 import os
@@ -8,7 +6,6 @@ import sys
 import logging
 import aiohttp
 
-# Добавляем родительскую папку в путь для импорта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from aiogram import Bot, Dispatcher, F
@@ -19,19 +16,15 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.client.session.aiohttp import AiohttpSession
 
 from buyers.buyer_config import BuyerConfigManager, BuyerConfig, BuyingStrategy, BuyingProfile
-from app.config import BUYER_SESSIONS, MANAGEMENT_BOT_TOKEN, ADMIN_USER_ID, PROXY_URL, BUYER_OWNERS, ADMIN_USERNAMES, ALLOWED_USERS
+from app.config import BUYER_SESSIONS, MANAGEMENT_BOT_TOKEN, PROXY_URL, BUYER_OWNERS, ADMIN_USERNAMES, ALLOWED_USERS
 
-# Импорты модулей бота
 from .keyboards import create_main_keyboard
 from .callbacks import register_callbacks
 from .admin_callbacks import register_strategy_callbacks, register_admin_callbacks
 from .text_handlers import register_text_handlers
-
-# Конфигурация бота
 BOT_TOKEN = MANAGEMENT_BOT_TOKEN
-ADMIN_USER_ID = ADMIN_USER_ID
 
-# Создаем сессию с прокси, если настроен
+# Создание бота с прокси если настроен
 if PROXY_URL:
     connector = aiohttp.TCPConnector(limit=100, limit_per_host=30)
     session = AiohttpSession(
@@ -46,54 +39,40 @@ else:
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
-# Менеджер конфигураций
 config_manager = BuyerConfigManager("data/buyer_configs.json")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Инициализируем дефолтные конфигурации для всех ботов-скупщиков
 def init_default_configs():
-    """Создает дефолтные конфигурации для всех ботов-скупщиков, если их нет"""
+    """Создает дефолтные конфигурации"""
     for session_name in BUYER_SESSIONS:
         if not config_manager.get_config(session_name):
             logger.info(f"Создание дефолтной конфигурации для {session_name}")
             config_manager.create_default_config(session_name, owner_id=0)
 
-# Инициализируем конфигурации при запуске
 init_default_configs()
-
-# Глобальные переменные для хранения контекста пользователей
 user_contexts = {}
 
 from typing import Optional
 
 def is_admin(user_id: Optional[int] = None, username: Optional[str] = None) -> bool:
     """Проверяет, является ли пользователь администратором"""
-    # Проверяем по username (новая система)
     if username and username in ADMIN_USERNAMES:
         return True
-    
-    # Проверяем по user_id (совместимость)
-    if user_id and user_id == ADMIN_USER_ID:
-        return True
-    
     return False
 
 def has_bot_access(username: Optional[str] = None) -> bool:
-    """Проверяет, может ли пользователь входить в бота"""
+    """Проверяет доступ пользователя к боту"""
     if not username:
         return False
     
-    # Админы имеют доступ
     if username in ADMIN_USERNAMES:
         return True
     
-    # Обычные пользователи из списка разрешенных
     if username in ALLOWED_USERS:
         return True
     
-    # Пользователи, у которых есть хотя бы один бот
     if any(owner == username for owner in BUYER_OWNERS.values()):
         return True
     

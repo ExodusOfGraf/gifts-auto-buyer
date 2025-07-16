@@ -7,33 +7,21 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(ROOT_DIR, 'data')
 APP_DIR = os.path.join(ROOT_DIR, 'app')
 
-# Создаем папку data, если ее нет
 os.makedirs(DATA_DIR, exist_ok=True)
-
-# Добавляем папку 'app' в путь для импорта
 sys.path.append(ROOT_DIR)
 
 try:
     from scanners.scanner import main as scanner_main
-    from buyers.buyer_v2 import main as buyer_main  # Используем новую версию покупателя
+    from buyers.buyer_v2 import main as buyer_main
     from config_bot.config_bot import main as config_bot_main
 except ImportError as e:
-    print(f"Ошибка импорта. Убедитесь, что main.py находится в корне проекта, а скрипты - в соответствующих папках.")
-    print(f"Подробности: {e}")
+    print(f"Ошибка импорта: {e}")
     sys.exit(1)
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - [MAIN] - %(levelname)s - %(message)s'
 )
-
-# Проверяем наличие TgCrypto при запуске системы
-try:
-    import tgcrypto
-    logging.info("🚀 TgCrypto установлен - система работает на максимальной скорости!")
-except ImportError:
-    logging.warning("⚠️ TgCrypto не установлен! Система будет работать медленнее.")
-    logging.warning("💡 Для установки выполните: pip install tgcrypto")
 
 async def run_trading_only():
     """Запускает только сканеры и покупателей без бота-конфигуратора"""

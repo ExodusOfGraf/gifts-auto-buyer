@@ -19,7 +19,7 @@ pip install tgcrypto
 Отредактируйте `app/config.py`:
 ```python
 MANAGEMENT_BOT_TOKEN = "your_bot_token"
-ADMIN_USER_ID = your_telegram_id
+ADMIN_USERNAMES = ["your_telegram_username"]  # без символа @
 
 # Если есть проблемы с доступом к Telegram API
 PROXY_URL = "socks5://127.0.0.1:1080"  # Настройте прокси
@@ -398,7 +398,7 @@ tail -f config_bot.log  # Активность бота управления
 
 ### Бот не отвечает:
 1. Проверьте `MANAGEMENT_BOT_TOKEN` в `app/config.py`
-2. Убедитесь в правильности `ADMIN_USER_ID`
+2. Убедитесь, что ваш username добавлен в `ADMIN_USERNAMES`
 3. Перезапустите: `python main.py config`
 
 ### Конфигурация не применяется:
