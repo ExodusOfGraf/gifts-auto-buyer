@@ -124,7 +124,9 @@ ALLOWED_USERS = [
     "top9ling",
     "POLERY_YP",
     "griezmann_leyenda",
+    "scamshits",
     "wofur",
+    "trahnusuka", 
     "markycia",
     "Tr4ster1",
     "paul_durov_friend",
@@ -137,12 +139,21 @@ ALLOWED_USERS = [
     "onspam",
 ]
 
+# Система aliases для пользователей с несколькими username
+# Формат: "основной_username": ["альтернативный1", "альтернативный2"]
+USERNAME_ALIASES = {
+    "wofur": ["scamshits"],  # пользователь wofur также может заходить как scamshits
+    # При необходимости можно добавить других пользователей:
+    # "alexxand_er": ["другой_nickname"],
+}
+
 # Соответствие сессий покупателей и их владельцев
 BUYER_OWNERS = {
     "buyer_FormulaPobedi": "FormulaPobedi",
     "buyer_mewoem": "alexxand_er",        
     "buyer_ONL1N9": "ONL1N9",       
     "buyer_markycia": "markycia",
-    "buyer_trahnusuka": "wofur",
-
+    "buyer_trahnusuka": "trahnusuka", 
+    "buyer_trahnusuka": "wofur", 
 }
+

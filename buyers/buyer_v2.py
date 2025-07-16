@@ -122,21 +122,21 @@ async def get_purchase_parameters(
         config = manager.create_default_config(client.name, 0)
 
     if not config.enabled:
-        log.info(f"⏸️ Покупатель {client.name} отключен. Пропускаем покупку.")
+        # log.info(f"⏸️ Покупатель {client.name} отключен. Пропускаем покупку.")
         return None, None
 
     if config.should_reset_daily():
-        log.info(f"🔄 Сбрасываем ежедневные траты для {client.name}")
+        # log.info(f"🔄 Сбрасываем ежедневные траты для {client.name}")
         config.reset_daily_spending()
         manager.set_config(client.name, config)
 
     strategy = config.get_best_strategy(price)
     if not strategy:
-        log.info(f"❌ Нет подходящей стратегии для подарка ценой {price} ⭐. Пропускаем.")
+        # log.info(f"❌ Нет подходящей стратегии для подарка ценой {price} ⭐. Пропускаем.")
         return None, None
     
-    log.info(f"✅ Выбрана стратегия: {strategy.min_price}-{strategy.max_price} ⭐ (приоритет {strategy.priority})")
-    log.info(f"💳 Лимит стратегии: {strategy.max_spend} ⭐, потрачено: {strategy.current_spent} ⭐")
+    # log.info(f"✅ Выбрана стратегия: {strategy.min_price}-{strategy.max_price} ⭐ (приоритет {strategy.priority})")
+    # log.info(f"💳 Лимит стратегии: {strategy.max_spend} ⭐, потрачено: {strategy.current_spent} ⭐")
         
     return config, strategy
 
@@ -175,13 +175,13 @@ async def execute_purchase_loop(
         quantity_to_buy = min(max_by_strategy, max_by_balance)
         
         if quantity_to_buy <= 0:
-            log.info(f"Лимит трат по стратегии исчерпан или недостаточно средств. Пропускаем покупку.")
+            # log.info(f"Лимит трат по стратегии исчерпан или недостаточно средств. Пропускаем покупку.")
             return
         
-        log.info(f"Стратегия: {strategy.min_price}-{strategy.max_price} ⭐ (приоритет {strategy.priority})")
-        log.info(f"Баланс: {balance} ⭐. Цена: {price} ⭐. Покупаем {quantity_to_buy} шт.")
-        log.info(f"Потрачено по стратегии: {strategy.current_spent}/{strategy.max_spend} ⭐")
-        log.info(f"Место отправки: {destination_info}")
+        # log.info(f"Стратегия: {strategy.min_price}-{strategy.max_price} ⭐ (приоритет {strategy.priority})")
+        # log.info(f"Баланс: {balance} ⭐. Цена: {price} ⭐. Покупаем {quantity_to_buy} шт.")
+        # log.info(f"Потрачено по стратегии: {strategy.current_spent}/{strategy.max_spend} ⭐")
+        # log.info(f"Место отправки: {destination_info}")
         
         successful_purchases = 0
         for i in range(quantity_to_buy):
@@ -189,7 +189,7 @@ async def execute_purchase_loop(
             purchase_success = False
             
             try:
-                log.info(f"Попытка покупки #{i + 1}/{quantity_to_buy}...")
+                # log.info(f"Попытка покупки #{i + 1}/{quantity_to_buy}...")
                 
                 api_start = time.time()
                 await client.send_gift(chat_id=chat_id, gift_id=gift_id)
@@ -245,11 +245,11 @@ async def execute_purchase_loop(
                 updated_strategy = updated_config.get_best_strategy(price)
                 if updated_strategy:
                     remaining = updated_strategy.max_spend - updated_strategy.current_spent
-                    log.info(f"Успешно куплено {successful_purchases} подарков. Остаток по стратегии: {remaining} ⭐")
+                    # log.info(f"Успешно куплено {successful_purchases} подарков. Остаток по стратегии: {remaining} ⭐")
             
             if ENABLE_PERFORMANCE_TRACKING:
                 stats = performance_stats[client.name]
-                log.info(f"⏱️ Общее время обработки: {total_time:.3f}с. Среднее время покупки: {stats.get_average_time():.3f}с")
+                # log.info(f"⏱️ Общее время обработки: {total_time:.3f}с. Среднее время покупки: {stats.get_average_time():.3f}с")
                 
                 if PERFORMANCE_LOG_INTERVAL > 0 and stats.total_purchases % PERFORMANCE_LOG_INTERVAL == 0:
                     log_performance_stats(client.name, stats)
@@ -267,8 +267,8 @@ async def gift_handler(client: Client, message):
     log = logging.getLogger(client.name)
     reaction_start = time.time()
     
-    log.info(f"🔔 Получено новое сообщение в целевом канале от {client.name}!")
-    log.info(f"📝 Текст сообщения: {message.text[:100]}..." if len(message.text) > 100 else f"📝 Текст сообщения: {message.text}")
+    # log.info(f"🔔 Получено новое сообщение в целевом канале от {client.name}!")
+    # log.info(f"📝 Текст сообщения: {message.text[:100]}..." if len(message.text) > 100 else f"📝 Текст сообщения: {message.text}")
     
     if config_manager is None:
         log.error("Менеджер конфигураций не инициализирован!")
@@ -276,14 +276,14 @@ async def gift_handler(client: Client, message):
     
     gift_data = parse_gift_data(message.text)
     if not gift_data:
-        log.info("❌ Сообщение не содержит данных о подарке")
+        # log.info("❌ Сообщение не содержит данных о подарке")
         return
 
     gift_id = gift_data['GIFT_ID']
     price = gift_data['PRICE']
     
     reaction_time = time.time() - reaction_start
-    log.info(f"🎁 Обнаружен подарок ID:{gift_id}, цена:{price} ⭐. Время реакции: {reaction_time:.3f}с")
+    # log.info(f"🎁 Обнаружен подарок ID:{gift_id}, цена:{price} ⭐. Время реакции: {reaction_time:.3f}с")
     
     if ENABLE_PERFORMANCE_TRACKING:
         performance_stats[client.name].add_reaction_time(reaction_time)
@@ -291,14 +291,16 @@ async def gift_handler(client: Client, message):
     config, strategy = await get_purchase_parameters(client, price, config_manager)
     
     if config and strategy:
-        log.info(f"✅ Найдена подходящая стратегия для покупки")
+        # log.info(f"✅ Найдена подходящая стратегия для покупки")
         await execute_purchase_loop(client, gift_id, price, strategy, config_manager)
     else:
-        log.info(f"❌ Не найдена подходящая стратегия или конфигурация отключена")
+        # log.info(f"❌ Не найдена подходящая стратегия или конфигурация отключена")
+        pass
     
     total_processing_time = time.time() - reaction_start
     if ENABLE_PERFORMANCE_TRACKING:
-        log.info(f"⏰ Общее время обработки сообщения: {total_processing_time:.3f}с")
+        # log.info(f"⏰ Общее время обработки сообщения: {total_processing_time:.3f}с")
+        pass
 
 async def run_buyer(session_name: str, workdir: str):
     """Запускает клиента-покупателя"""
@@ -309,21 +311,23 @@ async def run_buyer(session_name: str, workdir: str):
     
     try:
         await client.start()
-        logger.info(f"✅ Бот-покупатель {client.name} запущен и слушает канал {TARGET_CHANNEL_ID}")
+        # logger.info(f"✅ Бот-покупатель {client.name} запущен и слушает канал {TARGET_CHANNEL_ID}")
         
         # Проверяем баланс при запуске
         try:
             balance = await client.get_stars_balance()
-            logger.info(f"💰 Текущий баланс: {balance} ⭐")
+            # logger.info(f"💰 Текущий баланс: {balance} ⭐")
         except Exception as e:
             logger.warning(f"Не удалось получить баланс: {e}")
         
         # Логируем настройки производительности
         if ENABLE_PERFORMANCE_TRACKING:
-            logger.info(f"📊 Отслеживание производительности включено (интервал: {PERFORMANCE_LOG_INTERVAL} покупок)")
-            logger.info(f"⏱️ Система будет отслеживать: время реакции, время API вызовов, время покупок")
+            # logger.info(f"📊 Отслеживание производительности включено (интервал: {PERFORMANCE_LOG_INTERVAL} покупок)")
+            # logger.info(f"⏱️ Система будет отслеживать: время реакции, время API вызовов, время покупок")
+            pass
         else:
-            logger.info("📊 Отслеживание производительности отключено")
+            # logger.info("📊 Отслеживание производительности отключено")
+            pass
         
         # Ожидаем сообщения (запускаем бесконечный цикл)
         await asyncio.sleep(float('inf'))
@@ -333,7 +337,7 @@ async def run_buyer(session_name: str, workdir: str):
     finally:
         if client.is_connected:
             await client.stop()
-            logger.info(f"Покупатель {client.name} остановлен")
+            # logger.info(f"Покупатель {client.name} остановлен")
 
 async def main(workdir: str = "data"):
     """Основная функция для запуска всех ботов-покупателей"""
@@ -347,15 +351,16 @@ async def main(workdir: str = "data"):
         logging.error("Список BUYER_SESSIONS в config.py пуст. Покупатели не запущены.")
         return
     
-    logging.info(f"Запускаем {len(BUYER_SESSIONS)} аккаунтов-покупателей...")
-    logging.info("Система стратегий покупки активирована!")
+    # logging.info(f"Запускаем {len(BUYER_SESSIONS)} аккаунтов-покупателей...")
+    # logging.info("Система стратегий покупки активирована!")
     
     # Логируем настройки производительности
     if ENABLE_PERFORMANCE_TRACKING:
-        logging.info(f"📊 Отслеживание производительности включено")
-        logging.info(f"⏱️ Детальная статистика каждые {PERFORMANCE_LOG_INTERVAL} покупок")
+        # logging.info(f"📊 Отслеживание производительности включено")
+        # logging.info(f"⏱️ Детальная статистика каждые {PERFORMANCE_LOG_INTERVAL} покупок")
         if SYSTEM_STATS_LOG_INTERVAL_MINUTES > 0:
-            logging.info(f"🌍 Общая статистика системы каждые {SYSTEM_STATS_LOG_INTERVAL_MINUTES} минут")
+            # logging.info(f"🌍 Общая статистика системы каждые {SYSTEM_STATS_LOG_INTERVAL_MINUTES} минут")
+            pass
     
     # Создаем задачи для всех покупателей
     buyer_tasks = [run_buyer(session, workdir) for session in BUYER_SESSIONS]
@@ -507,6 +512,6 @@ def export_performance_stats_to_file(workdir: str = "data"):
         with open(stats_file, 'w', encoding='utf-8') as f:
             json.dump(export_data, f, ensure_ascii=False, indent=2)
         
-        logging.info(f"📊 Статистика производительности экспортирована в {stats_file}")
+        # logging.info(f"📊 Статистика производительности экспортирована в {stats_file}")
     except Exception as e:
         logging.error(f"Ошибка при экспорте статистики: {e}")

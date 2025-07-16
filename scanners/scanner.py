@@ -35,16 +35,16 @@ def save_gift_ids(gift_ids: set[int], gifts_file_path: str):
 
 async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_path: str) -> set:
     """Проверяет подарки и отправляет уведомления"""
-    log.info(f"Проверка с аккаунта '{client.name}'...")
+    # log.info(f"Проверка с аккаунта '{client.name}'...")
     all_gifts = await client.get_available_gifts()
 
     # Фильтрация подарков
     if SCANNER_TEST_MODE:
         rare_gifts = all_gifts
-        log.info(f"Тест режим: все подарки ({len(all_gifts)} шт.)")
+        # log.info(f"Тест режим: все подарки ({len(all_gifts)} шт.)")
     else:
         rare_gifts = [gift for gift in all_gifts if gift.is_limited]
-        log.info(f"Только лимитированные подарки ({len(rare_gifts)} шт.)")
+        # log.info(f"Только лимитированные подарки ({len(rare_gifts)} шт.)")
     
     current_rare_gift_ids = {gift.id for gift in rare_gifts}
     
@@ -59,7 +59,8 @@ async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_pat
         gifts_to_send = list(new_gift_ids)[:MAX_GIFTS_TO_SEND]
         
         if len(new_gift_ids) > MAX_GIFTS_TO_SEND:
-            log.info(f"Ограничиваем отправку до {MAX_GIFTS_TO_SEND} подарков из {len(new_gift_ids)} найденных")
+            # log.info(f"Ограничиваем отправку до {MAX_GIFTS_TO_SEND} подарков из {len(new_gift_ids)} найденных")
+            pass
         
         for i, gift_id in enumerate(gifts_to_send):
             gift_data = rare_gifts_dict[gift_id]
@@ -74,7 +75,7 @@ async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_pat
             try:
                 # Отправляем только текстовое сообщение (убираем проблемную отправку thumbnail)
                 await client.send_message(TARGET_CHANNEL_ID, message, disable_web_page_preview=True)
-                log.info(f"Отправлено текстовое сообщение для подарка '{gift_data.name}' (ID: {gift_data.id})")
+                # log.info(f"Отправлено текстовое сообщение для подарка '{gift_data.name}' (ID: {gift_data.id})")
                 
                 # Добавляем отправленный подарок в известные сразу после успешной отправки
                 known_ids.add(gift_id)
@@ -102,7 +103,7 @@ async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_pat
         save_gift_ids(known_ids, gifts_file_path)
     else:
         gift_type = "подарков" if SCANNER_TEST_MODE else "редких подарков"
-        log.info(f"Новых {gift_type} не найдено через аккаунт '{client.name}'.")
+        # log.info(f"Новых {gift_type} не найдено через аккаунт '{client.name}'.")
     return known_ids
 
 def get_gift_attributes(gift) -> dict:
@@ -191,13 +192,13 @@ async def main(workdir: str):
     clients = [Client(name, api_id=API_ID, api_hash=API_HASH, workdir=workdir) for name in SCANNER_SESSIONS]
     try:
         await asyncio.gather(*[client.start() for client in clients])
-        log.info(f"Все {len(clients)} сканера успешно запущены.")
+        # log.info(f"Все {len(clients)} сканера успешно запущены.")
         known_gift_ids = load_known_gift_ids(gifts_file_path)
         
         mode_text = "тестирования (все подарки)" if SCANNER_TEST_MODE else "продакшена (только лимитированные)"
-        log.info(f"Режим: {mode_text}")
-        log.info(f"Загружено {len(known_gift_ids)} известных ID подарков.")
-        log.info(f"Настройки: макс. подарков={MAX_GIFTS_TO_SEND}, задержка={MESSAGE_SEND_DELAY}с, интервал={CHECK_INTERVAL_SECONDS}с")
+        # log.info(f"Режим: {mode_text}")
+        # log.info(f"Загружено {len(known_gift_ids)} известных ID подарков.")
+        # log.info(f"Настройки: макс. подарков={MAX_GIFTS_TO_SEND}, задержка={MESSAGE_SEND_DELAY}с, интервал={CHECK_INTERVAL_SECONDS}с")
         while True:
             for client in clients:
                 try:
@@ -207,11 +208,11 @@ async def main(workdir: str):
                 except Exception as e:
                     log.error(f"Непредвиденная ошибка у клиента '{client.name}': {e}", exc_info=True)
                 # Убираем задержку между сканерами для ускорения обработки
-            log.info(f"Цикл проверки завершен. Ожидаем {CHECK_INTERVAL_SECONDS} секунд...")
+            # log.info(f"Цикл проверки завершен. Ожидаем {CHECK_INTERVAL_SECONDS} секунд...")
             await asyncio.sleep(CHECK_INTERVAL_SECONDS)
     finally:
-        log.info("Остановка всех клиентов-сканеров...")
+        # log.info("Остановка всех клиентов-сканеров...")
         stop_tasks = [client.stop() for client in clients if client.is_connected]
         if stop_tasks:
             await asyncio.gather(*stop_tasks)
-        log.info("Сканеры остановлены.")
+        # log.info("Сканеры остановлены.")

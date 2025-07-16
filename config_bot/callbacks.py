@@ -19,31 +19,57 @@ from .keyboards import (
 logger = logging.getLogger(__name__)
 
 
+async def safe_edit_message(callback: CallbackQuery, text: str, reply_markup=None, parse_mode="HTML"):
+    """Безопасно редактирует сообщение, избегая ошибки 'message is not modified'"""
+    if not callback.message or isinstance(callback.message, InaccessibleMessage):
+        logger.error("callback.message отсутствует или недоступно")
+        return False
+    
+    try:
+        # Проверяем, изменился ли текст или клавиатура
+        current_text = callback.message.text or callback.message.caption or ""
+        if current_text != text or callback.message.reply_markup != reply_markup:
+            await callback.message.edit_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+            return True
+        else:
+            logger.debug("Содержимое сообщения не изменилось, пропускаем редактирование")
+            return True
+    except Exception as e:
+        if "message is not modified" in str(e):
+            logger.debug("Сообщение уже актуально")
+            return True
+        else:
+            logger.error(f"Ошибка при редактировании сообщения: {e}")
+            try:
+                # Попробуем отправить новое сообщение
+                await callback.message.answer(text, reply_markup=reply_markup, parse_mode=parse_mode)
+                return True
+            except Exception as e2:
+                logger.error(f"Не удалось отправить новое сообщение: {e2}")
+                return False
+
+
 def register_callbacks(dp, config_manager, user_contexts, has_access_to_session, get_user_sessions):
     """Регистрирует все callback-обработчики"""
     
     @dp.callback_query(F.data == "back_to_main")
     async def back_to_main(callback: CallbackQuery):
         """Возврат к главному меню"""
-        logger.info(f"🔍 back_to_main: получен callback от пользователя {callback.from_user.username if callback.from_user else 'None'}")
+        # logger.info(f"🔍 back_to_main: получен callback от пользователя {callback.from_user.username if callback.from_user else 'None'}")
         await callback.answer()  # Отвечаем на callback сразу
         
-        if callback.message and not isinstance(callback.message, InaccessibleMessage):
-            try:
-                await callback.message.edit_text(
-                    "🎁 <b>Панель управления покупателями подарков</b>\n\n"
-                    "Добро пожаловать в систему управления автоматической покупкой подарков!\n\n"
-                    "Выберите действие:",
-                    reply_markup=create_main_keyboard(),
-                    parse_mode="HTML"
-                )
-            except Exception as e:
-                logger.error(f"Ошибка при возврате к главному меню: {e}")
+        text = ("🎁 <b>Панель управления покупателями подарков</b>\n\n"
+                "Добро пожаловать в систему управления автоматической покупкой подарков!\n\n"
+                "Выберите действие:")
+        
+        success = await safe_edit_message(callback, text, create_main_keyboard())
+        if not success:
+            logger.error("Не удалось вернуться к главному меню")
 
     @dp.callback_query(F.data == "stats")
     async def show_stats(callback: CallbackQuery):
         """Показывает общую статистику"""
-        logger.info(f"🔍 show_stats: получен callback от пользователя {callback.from_user.username if callback.from_user else 'None'}")
+        # logger.info(f"🔍 show_stats: получен callback от пользователя {callback.from_user.username if callback.from_user else 'None'}")
         await callback.answer()  # Отвечаем на callback сразу
         
         if not callback.from_user:
@@ -68,11 +94,9 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
         builder = InlineKeyboardBuilder()
         builder.add(InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_main"))
         
-        if callback.message and not isinstance(callback.message, InaccessibleMessage):
-            try:
-                await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
-            except Exception as e:
-                logger.error(f"Ошибка при показе статистики: {e}")
+        success = await safe_edit_message(callback, text, builder.as_markup())
+        if not success:
+            logger.error("Не удалось показать статистику")
 
     @dp.callback_query(F.data == "settings")
     async def show_settings(callback: CallbackQuery):
@@ -89,35 +113,32 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
             await callback.answer("❌ У вас нет доступных сессий")
             return
         
-        if callback.message and not isinstance(callback.message, InaccessibleMessage):
-            try:
-                await callback.message.edit_text(
-                    "⚙️ <b>Настройки</b>\n\nВыберите сессию для настройки:",
-                    reply_markup=create_sessions_keyboard(callback.from_user, get_user_sessions),
-                    parse_mode="HTML"
-                )
-            except Exception as e:
-                logger.error(f"Ошибка при показе настроек: {e}")
+        text = "⚙️ <b>Настройки</b>\n\nВыберите сессию для настройки:"
+        markup = create_sessions_keyboard(callback.from_user, get_user_sessions)
+        
+        success = await safe_edit_message(callback, text, markup)
+        if not success:
+            logger.error("Не удалось показать настройки")
 
     @dp.callback_query(F.data.startswith("session_"))
     async def session_menu(callback: CallbackQuery):
         """Меню для конкретной сессии"""
-        logger.info(f"🔍 session_menu: получен callback: data='{callback.data}', user='{callback.from_user.username if callback.from_user else 'None'}'")
+        # logger.info(f"🔍 session_menu: получен callback: data='{callback.data}', user='{callback.from_user.username if callback.from_user else 'None'}'")
         
         await callback.answer()  # Отвечаем на callback сразу
         
-        logger.info(f"session_menu вызван: data={callback.data}, user={callback.from_user.username if callback.from_user else 'None'}")
+        # logger.info(f"session_menu вызван: data={callback.data}, user={callback.from_user.username if callback.from_user else 'None'}")
         
         if not callback.data or not callback.from_user:
             logger.error("Отсутствуют callback.data или callback.from_user")
             return
         
         session_name = callback.data.split("_", 1)[1]
-        logger.info(f"Извлечено имя сессии: {session_name}")
+        # logger.info(f"Извлечено имя сессии: {session_name}")
         
         # Проверяем доступ
         has_access = has_access_to_session(callback.from_user.username, session_name)
-        logger.info(f"Проверка доступа для {callback.from_user.username} к сессии {session_name}: {has_access}")
+        # logger.info(f"Проверка доступа для {callback.from_user.username} к сессии {session_name}: {has_access}")
         
         if not has_access:
             logger.warning(f"Пользователь {callback.from_user.username} не имеет доступа к сессии {session_name}")
@@ -126,7 +147,7 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
         
         # НЕ создаем конфигурацию, просто получаем существующую
         config = config_manager.get_config(session_name)
-        logger.info(f"Конфигурация для сессии {session_name}: {'найдена' if config else 'не найдена'}")
+        # logger.info(f"Конфигурация для сессии {session_name}: {'найдена' if config else 'не найдена'}")
         
         if not config:
             logger.warning(f"Конфигурация для сессии {session_name} не найдена")
@@ -141,20 +162,16 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
         text += f"Активный профиль: <b>{config.active_profile}</b>\n\n"
         text += "Выберите действие:"
         
-        logger.info(f"Попытка отправить сообщение с текстом: {text[:50]}...")
+        # logger.info(f"Попытка отправить сообщение с текстом: {text[:50]}...")
         
-        if callback.message and not isinstance(callback.message, InaccessibleMessage):
-            try:
-                await callback.message.edit_text(
-                    text,
-                    reply_markup=create_session_menu_keyboard(session_name, config_manager),
-                    parse_mode="HTML"
-                )
-                #logger.info(f"Успешно показано меню для сессии {session_name}")
-            except Exception as e:
-                logger.error(f"Ошибка при показе меню сессии {session_name}: {e}")
-        else:
-            logger.error("callback.message отсутствует или недоступно")
+        success = await safe_edit_message(
+            callback, 
+            text, 
+            create_session_menu_keyboard(session_name, config_manager)
+        )
+        
+        if not success:
+            logger.error(f"Не удалось показать меню для сессии {session_name}")
 
     @dp.callback_query(F.data.startswith("profiles|"))
     async def show_profiles(callback: CallbackQuery):
@@ -187,15 +204,13 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
         text += f"Активный профиль: <b>{config.active_profile}</b>\n\n"
         text += "Выберите профиль для настройки:"
         
-        if callback.message and not isinstance(callback.message, InaccessibleMessage):
-            try:
-                await callback.message.edit_text(
-                    text,
-                    reply_markup=create_profiles_keyboard(session_name, config_manager),
-                    parse_mode="HTML"
-                )
-            except Exception as e:
-                logger.error(f"Ошибка при показе профилей: {e}")
+        success = await safe_edit_message(
+            callback, 
+            text, 
+            create_profiles_keyboard(session_name, config_manager)
+        )
+        if not success:
+            logger.error(f"Не удалось показать профили для сессии {session_name}")
 
     @dp.callback_query(F.data.startswith("profile|"))
     async def show_profile_menu(callback: CallbackQuery):
@@ -247,15 +262,13 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
         # Убираем лишний перенос строки в конце, если он есть
         text = text.strip()
         
-        if callback.message and not isinstance(callback.message, InaccessibleMessage):
-            try:
-                await callback.message.edit_text(
-                    text,
-                    reply_markup=create_profile_menu_keyboard(session_name, profile_name, config_manager),
-                    parse_mode="HTML"
-                )
-            except Exception as e:
-                logger.error(f"Ошибка при показе меню профиля: {e}")
+        success = await safe_edit_message(
+            callback,
+            text,
+            create_profile_menu_keyboard(session_name, profile_name, config_manager)
+        )
+        if not success:
+            logger.error(f"Не удалось показать меню профиля {profile_name} для сессии {session_name}")
 
     @dp.callback_query(F.data.startswith("activate_profile|"))
     async def activate_profile(callback: CallbackQuery):
@@ -329,15 +342,9 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
         builder = InlineKeyboardBuilder()
         builder.add(InlineKeyboardButton(text="🔙 Отмена", callback_data=f"profiles|{session_name}"))
         
-        if callback.message and not isinstance(callback.message, InaccessibleMessage):
-            try:
-                await callback.message.edit_text(
-                    text,
-                    reply_markup=builder.as_markup(),
-                    parse_mode="HTML"
-                )
-            except Exception as e:
-                logger.error(f"Ошибка при запросе имени профиля: {e}")
+        success = await safe_edit_message(callback, text, builder.as_markup())
+        if not success:
+            logger.error(f"Не удалось показать запрос имени профиля для сессии {session_name}")
 
     @dp.callback_query(F.data.startswith("delete_profile_confirm|"))
     async def delete_profile_confirm(callback: CallbackQuery):
@@ -366,15 +373,9 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
         builder.add(InlineKeyboardButton(text="✅ Да, удалить", callback_data=f"confirm_delete|{session_name}|{profile_name}"))
         builder.add(InlineKeyboardButton(text="🔙 Отмена", callback_data=f"profile|{session_name}|{profile_name}"))
         
-        if callback.message and not isinstance(callback.message, InaccessibleMessage):
-            try:
-                await callback.message.edit_text(
-                    text,
-                    reply_markup=builder.as_markup(),
-                    parse_mode="HTML"
-                )
-            except Exception as e:
-                logger.error(f"Ошибка при подтверждении удаления: {e}")
+        success = await safe_edit_message(callback, text, builder.as_markup())
+        if not success:
+            logger.error(f"Не удалось показать подтверждение удаления профиля {profile_name}")
 
     @dp.callback_query(F.data.startswith("confirm_delete|"))
     async def confirm_delete_profile(callback: CallbackQuery):
