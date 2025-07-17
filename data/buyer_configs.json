@@ -144,11 +144,11 @@
           "target_channel_id": 0
         }
       },
-      "2": {
+      "Baza": {
         "strategy_1": {
-          "min_price": 1000,
-          "max_price": 10000,
-          "max_spend": 5000,
+          "min_price": 5000,
+          "max_price": 26000,
+          "max_spend": 30000,
           "priority": 1,
           "current_spent": 0,
           "send_to_self": true,
@@ -222,40 +222,40 @@
     "profiles": {
       "default": {
         "strategy_1": {
-          "min_price": 1000,
-          "max_price": 10000,
+          "min_price": 1,
+          "max_price": 200,
           "max_spend": 5000,
           "priority": 1,
           "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
+          "send_to_self": false,
+          "target_channel_id": -1002668262566
         },
         "strategy_2": {
-          "min_price": 500,
-          "max_price": 999,
-          "max_spend": 3000,
+          "min_price": 200,
+          "max_price": 500,
+          "max_spend": 5000,
           "priority": 2,
           "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
+          "send_to_self": false,
+          "target_channel_id": -1002668262566
         },
         "strategy_3": {
-          "min_price": 100,
-          "max_price": 499,
-          "max_spend": 2000,
+          "min_price": 2000,
+          "max_price": 5000,
+          "max_spend": 5000,
           "priority": 3,
           "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
+          "send_to_self": false,
+          "target_channel_id": -1002668262566
         },
         "strategy_4": {
-          "min_price": 1,
-          "max_price": 99,
-          "max_spend": 1000,
+          "min_price": 500,
+          "max_price": 1000,
+          "max_spend": 5000,
           "priority": 4,
           "current_spent": 0,
-          "send_to_self": true,
-          "target_channel_id": 0
+          "send_to_self": false,
+          "target_channel_id": -1002668262566
         }
       }
     },
@@ -485,9 +485,47 @@
           "send_to_self": true,
           "target_channel_id": 0
         }
+      },
+      "pinger": {
+        "strategy_1": {
+          "min_price": 1000,
+          "max_price": 10000,
+          "max_spend": 5000,
+          "priority": 1,
+          "current_spent": 0,
+          "send_to_self": true,
+          "target_channel_id": 0
+        },
+        "strategy_2": {
+          "min_price": 500,
+          "max_price": 999,
+          "max_spend": 3000,
+          "priority": 2,
+          "current_spent": 0,
+          "send_to_self": true,
+          "target_channel_id": 0
+        },
+        "strategy_3": {
+          "min_price": 100,
+          "max_price": 499,
+          "max_spend": 2000,
+          "priority": 3,
+          "current_spent": 0,
+          "send_to_self": true,
+          "target_channel_id": 0
+        },
+        "strategy_4": {
+          "min_price": 1,
+          "max_price": 99,
+          "max_spend": 1000,
+          "priority": 4,
+          "current_spent": 0,
+          "send_to_self": true,
+          "target_channel_id": 0
+        }
       }
     },
-    "active_profile": "default",
+    "active_profile": "pinger",
     "enabled": true,
     "auto_reset_daily": true,
     "last_reset": "",

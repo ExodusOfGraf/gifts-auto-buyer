@@ -295,18 +295,40 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
             if success:
                 await callback.answer(f"✅ Профиль '{profile_name}' активирован")
                 
-                # Обновляем меню профиля
-                if callback.message and not isinstance(callback.message, InaccessibleMessage):
-                    # Создаем новый CallbackQuery для обновления меню
-                    new_callback_data = f"profile|{session_name}|{profile_name}"
-                    fake_callback = type(callback)(
-                        id=callback.id,
-                        from_user=callback.from_user,
-                        chat_instance=callback.chat_instance,
-                        data=new_callback_data,
-                        message=callback.message
-                    )
-                    await show_profile_menu(fake_callback)
+                # Показываем меню профиля напрямую
+                config = config_manager.get_config(session_name)
+                if config and profile_name in config.profiles:
+                    profile = config.profiles[profile_name]
+                    text = f"🎯 <b>Профиль: {profile_name}</b>\n"
+                    if config.active_profile == profile_name:
+                        text += "✅ <i>Активен</i>\n\n"
+                    else:
+                        text += "⏸️ <i>Неактивен</i>\n\n"
+                    
+                    text += f"🔧 <b>Статус:</b> {'🟢 Включен' if profile.enabled else '🔴 Отключен'}\n"
+                    text += f"📊 <b>Стратегий:</b> {len([s for s in profile.get_strategies() if s.max_spend > 0])}/4\n\n"
+                    
+                    if profile.enabled:
+                        strategies = profile.get_strategies()
+                        active_strategies = [s for s in strategies if s.max_spend > 0]
+                        if active_strategies:
+                            text += "<b>Активные стратегии:</b>\n"
+                            for i, strategy in enumerate(strategies):
+                                if strategy.max_spend > 0:
+                                    remaining = strategy.max_spend - strategy.current_spent
+                                    text += f"  {i+1}. {strategy.min_price}-{strategy.max_price} ⭐ (остаток: {remaining}⭐)\n"
+                        else:
+                            text += "⚠️ <i>Нет активных стратегий</i>"
+                    else:
+                        text += "⚠️ <i>Профиль отключен</i>"
+                    
+                    keyboard = create_profile_menu_keyboard(session_name, profile_name, config_manager)
+                    
+                    success = await safe_edit_message(callback, text, keyboard)
+                    if not success:
+                        logger.error(f"Не удалось показать меню профиля после активации")
+                else:
+                    await callback.answer("❌ Профиль не найден")
             else:
                 await callback.answer(f"❌ Не удалось активировать профиль '{profile_name}'")
         
@@ -402,24 +424,30 @@ def register_callbacks(dp, config_manager, user_contexts, has_access_to_session,
             if success:
                 await callback.answer(f"✅ Профиль '{profile_name}' удален")
                 
-                # Создаем новый CallbackQuery для перехода к списку профилей
-                if callback.message and not isinstance(callback.message, InaccessibleMessage):
-                    new_callback_data = f"profiles|{session_name}"
-                    fake_callback = type(callback)(
-                        id=callback.id,
-                        from_user=callback.from_user,
-                        chat_instance=callback.chat_instance,
-                        data=new_callback_data,
-                        message=callback.message
-                    )
-                    await show_profiles(fake_callback)
+                # Получаем обновленную конфигурацию
+                config = config_manager.get_config(session_name)
+                if config:
+                    session_safe = session_name.replace('_', '\\_').replace('<', '&lt;').replace('>', '&gt;')
+                    text = f"🎯 <b>Профили закупки для {session_safe}</b>\n\n"
+                    text += f"Активный профиль: <b>{config.active_profile}</b>\n\n"
+                    text += "Выберите профиль для настройки или создайте новый:"
+                    
+                    keyboard = create_profiles_keyboard(session_name, config_manager)
+                    
+                    # Редактируем сообщение с новым содержимым
+                    success = await safe_edit_message(callback, text, keyboard)
+                    if not success:
+                        logger.error(f"Не удалось обновить список профилей после удаления")
+                else:
+                    # Если конфиг не найден после удаления (маловероятно, но возможно)
+                    await safe_edit_message(callback, "❌ Конфигурация не найдена. Возможно, сессия была удалена.", create_main_keyboard())
+
             else:
                 await callback.answer(f"❌ Не удалось удалить профиль '{profile_name}'")
         
         except Exception as e:
-            logger.error(f"Ошибка при удалении профиля: {e}")
-            error_msg = str(e)[:50] + "..." if len(str(e)) > 50 else str(e)
-            await callback.answer(f"❌ Ошибка: {error_msg}")
+            logger.error(f"Ошибка при удалении профиля: {e}", exc_info=True)
+            await callback.answer("❌ Произошла ошибка при удалении профиля")
 
     return {
         'back_to_main': back_to_main,

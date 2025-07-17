@@ -133,7 +133,7 @@ async def handle_strategy_params_input(message: Message, context: dict, config_m
         if min_price > max_price:
             raise ValueError("Минимальная цена не может быть больше максимальной")
         
-        if max_price > 10000 or max_spend > 100000:
+        if max_price > 100000 or max_spend > 100000:
             raise ValueError("Слишком большие значения")
         
     except ValueError as e:
