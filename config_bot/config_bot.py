@@ -1,4 +1,4 @@
-"""Бот управления конфигурацией покупателей"""
+"""Бот управления покупателями"""
 
 import asyncio
 import os
@@ -46,7 +46,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def init_default_configs():
-    """Создает дефолтные конфигурации"""
+    """Создает конфигурации по умолчанию"""
     for session_name in BUYER_SESSIONS:
         if not config_manager.get_config(session_name):
             logger.info(f"Создание дефолтной конфигурации для {session_name}")
@@ -64,7 +64,7 @@ def is_admin(user_id: Optional[int] = None, username: Optional[str] = None) -> b
     return False
 
 def resolve_username_with_aliases(username: Optional[str]) -> Optional[str]:
-    """Возвращает основной username пользователя с учетом aliases"""
+    """Возвращает основной username с учетом aliases"""
     if not username:
         return None
     
@@ -81,7 +81,7 @@ def resolve_username_with_aliases(username: Optional[str]) -> Optional[str]:
     return username
 
 def has_bot_access(username: Optional[str] = None) -> bool:
-    """Проверяет доступ пользователя к боту с поддержкой aliases"""
+    """Проверяет доступ к боту"""
     if not username:
         logger.warning("❌ Попытка проверки доступа без username")
         return False
@@ -127,7 +127,7 @@ def has_bot_access(username: Optional[str] = None) -> bool:
     return False
 
 def has_access_to_session(username: Optional[str] = None, session_name: Optional[str] = None) -> bool:
-    """Проверяет, имеет ли пользователь доступ к управлению сессией с поддержкой aliases"""
+    """Проверяет доступ к сессии"""
     if not session_name or not username:
         logger.warning(f"❌ Неполные данные для проверки доступа к сессии: username='{username}', session='{session_name}'")
         return False
@@ -164,7 +164,7 @@ def has_access_to_session(username: Optional[str] = None, session_name: Optional
     return False
 
 def get_user_sessions(username: Optional[str] = None) -> list:
-    """Возвращает список сессий, которыми может управлять пользователь с поддержкой aliases"""
+    """Возвращает список доступных сессий"""
     if not username:
         logger.warning("❌ Попытка получения сессий без username")
         return []
@@ -218,7 +218,7 @@ def check_admin_access(user) -> bool:
 
 
 def check_bot_access(user) -> bool:
-    """Проверяет общий доступ к боту с улучшенным логированием"""
+    """Проверяет доступ к боту"""
     if not user:
         logger.warning("❌ Попытка проверки доступа без объекта пользователя")
         return False

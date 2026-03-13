@@ -6,7 +6,7 @@ from datetime import datetime
 
 @dataclass
 class BuyingProfile:
-    """Профиль закупки - набор из 4 стратегий"""
+    """Профиль закупки с 4 стратегиями"""
     name: str
     strategy_1: 'BuyingStrategy'
     strategy_2: 'BuyingStrategy'
@@ -25,7 +25,7 @@ class BuyingProfile:
 
 @dataclass
 class BuyingStrategy:
-    """Стратегия покупки для диапазона цен"""
+    """Стратегия покупки по диапазону цен"""
     min_price: int
     max_price: int
     max_spend: int

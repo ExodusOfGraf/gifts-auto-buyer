@@ -35,10 +35,9 @@ def save_gift_ids(gift_ids: set[int], gifts_file_path: str):
 
 async def check_gifts_with_client(client: Client, known_ids: set, gifts_file_path: str) -> set:
     """Проверяет подарки и отправляет уведомления"""
-    # log.info(f"Проверка с аккаунта '{client.name}'...")
     all_gifts = await client.get_available_gifts()
 
-    # Фильтрация подарков
+    # Фильтрация
     if SCANNER_TEST_MODE:
         rare_gifts = all_gifts
         # log.info(f"Тест режим: все подарки ({len(all_gifts)} шт.)")
@@ -128,10 +127,10 @@ def get_gift_attributes(gift) -> dict:
     return attributes
 
 def format_gift_message(gift_data, attributes: dict) -> str:
-    """Форматирует сообщение с информацией о подарке"""
+    """Форматирует сообщение о подарке"""
     gift_name = gift_data.name or gift_data.title or "Безымянный подарок"
     
-    # Основное сообщение (адаптируется в зависимости от режима и типа подарка)
+    # Заголовок
     if SCANNER_TEST_MODE:
         if gift_data.is_limited:
             message = f"💎 **НОВЫЙ РЕДКИЙ ПОДАРОК!** 💎\n\n"
@@ -169,8 +168,8 @@ def format_gift_message(gift_data, attributes: dict) -> str:
     if attributes.get('last_sale_date'):
         message += f"**📅 Последняя продажа:** `{attributes['last_sale_date']}`\n"
     
-    # Техническая информация для бота (только основная)
-    message += f"\n--- Техническая информация для бота ---\n"
+    # Данные для бота
+    message += f"\n--- Данные для бота ---\n"
     message += f"NEW_GIFT\n"
     message += f"GIFT_ID:{gift_data.id}\n"
     message += f"PRICE:{gift_data.price}\n"

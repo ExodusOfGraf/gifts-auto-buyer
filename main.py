@@ -24,20 +24,20 @@ logging.basicConfig(
 )
 
 async def run_trading_only():
-    """Запускает только сканеры и покупателей без бота-конфигуратора"""
+    """Запускает сканеры и покупателей"""
     logging.info("Запуск торговых компонентов: сканеры и покупатели.")
     
-    # Передаем путь к папке data в наши функции
+    # Передаем путь к data
     scanner_task = asyncio.create_task(scanner_main(workdir=DATA_DIR))
     buyer_task = asyncio.create_task(buyer_main(workdir=DATA_DIR))
 
     await asyncio.gather(scanner_task, buyer_task)
 
 async def run_project():
-    """Запускает сканеры, покупателей и бот-конфигуратор параллельно"""
+    """Запускает все компоненты"""
     logging.info("Запуск проекта: сканеры, покупатели и бот-конфигуратор.")
     
-    # Передаем путь к папке data в наши функции
+    # Передаем путь к data
     scanner_task = asyncio.create_task(scanner_main(workdir=DATA_DIR))
     buyer_task = asyncio.create_task(buyer_main(workdir=DATA_DIR))
     config_bot_task = asyncio.create_task(config_bot_main())

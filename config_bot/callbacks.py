@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 async def safe_edit_message(callback: CallbackQuery, text: str, reply_markup=None, parse_mode="HTML"):
-    """Безопасно редактирует сообщение, избегая ошибки 'message is not modified'"""
+    """Редактирует сообщение с обработкой ошибок"""
     if not callback.message or isinstance(callback.message, InaccessibleMessage):
         logger.error("callback.message отсутствует или недоступно")
         return False

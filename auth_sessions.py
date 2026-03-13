@@ -29,14 +29,14 @@ except:
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 
 def print_header(session_name, session_type):
-    """Печатает заголовок авторизации"""
+    """Выводит заголовок авторизации"""
     print("\n" + "=" * 60)
-    print(f"🔐 АВТОРИЗАЦИЯ СЕССИИ: {session_name}")
-    print(f"📱 Тип: {session_type.upper()}")
+    print(f"АВТОРИЗАЦИЯ СЕССИИ: {session_name}")
+    print(f"Тип: {session_type.upper()}")
     print("=" * 60 + "\n")
 
 def safe_input(prompt, required=True):
-    """Безопасный ввод с обработкой ошибок"""
+    """Ввод с обработкой ошибок"""
     while True:
         try:
             value = input(prompt).strip()
@@ -239,8 +239,8 @@ async def auth_session(session_name, session_type):
             pass
 
 def show_help():
-    """Показывает справку по использованию"""
-    print("\n🔐 Скрипт авторизации сессий юзер-ботов")
+    """Показывает справку"""
+    print("\nСкрипт авторизации сессий юзер-ботов")
     print("=" * 50)
     print("\n📋 Использование:")
     print("  python auth_sessions.py [тип] [имя_сессии]")
